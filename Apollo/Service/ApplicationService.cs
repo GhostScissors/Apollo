@@ -12,6 +12,7 @@ public sealed class ApplicationService
     public static DirectoryInfo DataDirectory = new(Path.Combine(OutputDirectory.FullName, ".data"));
     
     public static ApiEndpointViewModel ApiVM = new();
+    public static CUE4ParseViewModel CUE4ParseVM = new();
     
     public static void Initialize()
     {
