@@ -1,6 +1,5 @@
 ﻿using Apollo.Settings;
 using Apollo.ViewModels;
-using Apollo.ViewModels.API;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
@@ -13,6 +12,7 @@ public sealed class ApplicationService
     
     public static ApiEndpointViewModel ApiVM = new();
     public static CUE4ParseViewModel CUE4ParseVM = new();
+    public static BackupViewModel BackupVM = new();
     
     public static void Initialize()
     {

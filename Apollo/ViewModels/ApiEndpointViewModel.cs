@@ -10,6 +10,7 @@ public class ApiEndpointViewModel
 {
     public EpicApiEndpoint EpicApi;
     public FortniteCentralApiEndpoint FortniteCentralApi;
+    public FModelApiEndpoint FModelApi;
 
     private readonly RestClient _client = new(new RestClientOptions
     {
@@ -21,6 +22,7 @@ public class ApiEndpointViewModel
     {
         EpicApi = new(_client);
         FortniteCentralApi = new(_client);
+        FModelApi = new(_client);
     }
     
     public async Task DownloadFileAsync(string url, string installationLocation)
