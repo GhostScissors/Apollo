@@ -1,3 +1,5 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using Apollo.Service;
 
-Console.WriteLine("Hello, World!");
+ApplicationService.Initialize();
+await ApplicationService.ApiVM.EpicApi.VerifyAuth();
+ApplicationService.Deinitialize();
