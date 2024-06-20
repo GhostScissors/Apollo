@@ -39,8 +39,8 @@ public class CUE4ParseViewModel
         Log.Information($"Downloading {manifestInfo?.Elements[0].BuildVersion}");
         var manifestOptions = new ManifestParseOptions
         {
-            ManifestCacheDirectory = ApplicationService.DataDirectory.FullName,
-            ChunkCacheDirectory = ApplicationService.DataDirectory.FullName,
+            ManifestCacheDirectory = ApplicationService.ManifestCacheDirectory.FullName,
+            ChunkCacheDirectory = ApplicationService.ChunkCacheDirectory.FullName,
             Zlibng = ZlibHelper.Instance,
             ChunkBaseUrl = "http://epicgames-download1.akamaized.net/Builds/Fortnite/CloudDir/",
         };

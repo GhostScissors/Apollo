@@ -35,6 +35,6 @@ public class ApiEndpointViewModel
             return;
         }
 
-        await File.WriteAllBytesAsync(installationLocation, data).ConfigureAwait(false);
+        await File.WriteAllBytesAsync(installationLocation, data!).ConfigureAwait(false);
     }
 }
