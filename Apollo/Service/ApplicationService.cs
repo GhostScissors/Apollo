@@ -13,6 +13,7 @@ public sealed class ApplicationService
     public static ApiEndpointViewModel ApiVM = new();
     public static CUE4ParseViewModel CUE4ParseVM = new();
     public static BackupViewModel BackupVM = new();
+    public static SoundsViewModel SoundsVM = new();
     
     public static void Initialize()
     {

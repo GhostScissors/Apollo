@@ -21,14 +21,12 @@ public class CUE4ParseViewModel
         RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     
     public StreamedFileProvider Provider { get; set; }
-    private List<VfsEntry> NewEntries { get; set; }
-    public List<VfsEntry> NewCosmetics { get; private set; }
+    public List<VfsEntry> NewEntries { get; set; }
 
     public CUE4ParseViewModel()
     {
         Provider = new StreamedFileProvider("FortniteGame", true, new(EGame.GAME_UE5_5));
         NewEntries = new List<VfsEntry>();
-        NewCosmetics = new List<VfsEntry>();
     }
 
     public async Task Initialize()
@@ -137,9 +135,7 @@ public class CUE4ParseViewModel
 
             NewEntries.Add(entry);
         }
-
-        NewCosmetics = NewEntries.Where(x => x.Path.StartsWith("FortniteGame/Plugins/GameFeatures/BRCosmetics/Content/Athena/Items/Cosmetics/")).ToList();
-
+        
         stopwatch.Stop();
         Log.Information("Loaded {files} in {time} ms", NewEntries.Count, stopwatch.ElapsedMilliseconds);
     }
