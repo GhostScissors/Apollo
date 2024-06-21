@@ -10,6 +10,7 @@ public static class ImageUtils
     {
         FileInfo backgroundImage = new(Path.Combine(ApplicationService.DataDirectory.FullName, "background.png"));
         const string fontPath = @"D:\Programming\Apollo\Apollo\bin\Debug\net8.0\Output\.data\BurbankBigCondensed-Bold.ttf";
+        const string credits = "via - @GhostScissors_ & @Loolo_WRLD";
 
         var typeface = SKTypeface.FromFile(fontPath);
         if (typeface == null)
@@ -54,6 +55,18 @@ public static class ImageUtils
                 canvas.DrawText(line, x, y, paint);
                 y += paint.TextSize + 10;
             }
+            
+            var smallTextPaint = new SKPaint
+            {
+                Typeface = typeface,
+                Color = SKColors.White,
+                IsAntialias = true,
+                Style = SKPaintStyle.Fill,
+                TextAlign = SKTextAlign.Right,
+                TextSize = 64
+            };
+            
+            canvas.DrawText(credits, 1900, backgroundBitmap.Height - 20, smallTextPaint);
 
             using var image = surface.Snapshot();
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);

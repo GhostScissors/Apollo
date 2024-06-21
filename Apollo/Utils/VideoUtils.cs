@@ -57,6 +57,6 @@ public static class VideoUtils
             UseShellExecute = false,
             CreateNoWindow = true
         });
-        ffmpegProcess?.WaitForExit();
+        ffmpegProcess?.WaitForExit(5000);
     }
 }
