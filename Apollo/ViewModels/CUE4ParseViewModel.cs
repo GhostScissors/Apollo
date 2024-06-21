@@ -51,6 +51,9 @@ public class CUE4ParseViewModel
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
+            if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" && fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
+                continue;
+                
             if (!_fortniteLive.IsMatch(fileManifest.FileName))
                 continue;
 
