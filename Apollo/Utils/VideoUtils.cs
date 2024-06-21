@@ -8,8 +8,8 @@ public static class VideoUtils
 {
     private static void MakeVideo()
     {
-        var audioFiles = new DirectoryInfo(ApplicationService.WavFiles.FullName).GetFiles("*.wav").OrderBy(f => f.LastWriteTime).ToList();
-        var imageFiles = new DirectoryInfo(ApplicationService.Images.FullName).GetFiles("*.png").OrderBy(f => f.LastWriteTime).ToList();
+        var audioFiles = new DirectoryInfo(ApplicationService.AudioFilesDirectory.FullName).GetFiles("*.wav").OrderBy(f => f.LastWriteTime).ToList();
+        var imageFiles = new DirectoryInfo(ApplicationService.ImagesDirectory.FullName).GetFiles("*.png").OrderBy(f => f.LastWriteTime).ToList();
 
         var ffmpegPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "ffmpeg.exe"));
         if (!File.Exists(ffmpegPath.FullName))
@@ -19,7 +19,7 @@ public static class VideoUtils
 
         for (var i = 0; i < imageFiles.Count; i++)
         {
-            var outputPath = new FileInfo(Path.Combine(ApplicationService.Videos.FullName, audioFiles[i].Name.Replace(audioFiles[i].Extension, ".mp4")));
+            var outputPath = new FileInfo(Path.Combine(ApplicationService.VideosDirectory.FullName, audioFiles[i].Name.Replace(audioFiles[i].Extension, ".mp4")));
             
             var ffmpegProcess = Process.Start(new ProcessStartInfo
             {
@@ -38,7 +38,7 @@ public static class VideoUtils
     {
         MakeVideo();
         
-        var videos = new DirectoryInfo(ApplicationService.Videos.FullName).GetFiles("*.mp4").OrderBy(f => f.LastWriteTime).ToList();
+        var videos = new DirectoryInfo(ApplicationService.VideosDirectory.FullName).GetFiles("*.mp4").OrderBy(f => f.LastWriteTime).ToList();
         var ffmpegPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "ffmpeg.exe"));
         var txtPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "videos.txt"));
 

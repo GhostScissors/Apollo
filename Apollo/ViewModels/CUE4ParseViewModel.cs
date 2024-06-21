@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Apollo.Enums;
 using Apollo.Service;
 using CUE4Parse.Compression;
 using CUE4Parse.FileProvider;
@@ -29,12 +30,21 @@ public class CUE4ParseViewModel
         NewEntries = new List<VfsEntry>();
     }
 
-    public async Task Initialize()
+    public async Task Initialize(EUpdateMode updateMode)
     {
         await InitOodle().ConfigureAwait(false);
         await InitZlib().ConfigureAwait(false);
+
+        ManifestInfo? manifestInfo;
         
-        var manifestInfo = await WatchForManifest();
+        if (updateMode == EUpdateMode.UpdateMode)
+        {
+            manifestInfo = await WatchForManifest().ConfigureAwait(false);
+        }
+        else
+        {
+            manifestInfo = await ApplicationService.ApiVM.EpicApi.GetManifestAsync().ConfigureAwait(false);
+        }
 
         Log.Information($"Downloading {manifestInfo?.Elements[0].BuildVersion}");
         var manifestOptions = new ManifestParseOptions
@@ -49,9 +59,10 @@ public class CUE4ParseViewModel
 
         foreach (var fileManifest in manifest.FileManifestList)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
+            var stopwatch = Stopwatch.StartNew();
 
-            if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" && fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
+            if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" && 
+                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
                 continue;
                 
             if (!_fortniteLive.IsMatch(fileManifest.FileName))
@@ -159,10 +170,6 @@ public class CUE4ParseViewModel
             newManifest = (await ApplicationService.ApiVM.EpicApi.GetManifestAsync().ConfigureAwait(false))!;
             var newVersion = newManifest.Elements[0].BuildVersion;
 
-#if DEBUG
-            if (initialVersion == newVersion)
-                break;
-#endif
             if (initialVersion != newVersion)
                 break;
         }

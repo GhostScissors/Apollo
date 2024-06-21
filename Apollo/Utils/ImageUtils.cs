@@ -70,7 +70,7 @@ public static class ImageUtils
 
             using var image = surface.Snapshot();
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-            var exportPath = new FileInfo(Path.Combine(ApplicationService.Images.FullName, $"{fileName}.png"));
+            var exportPath = new FileInfo(Path.Combine(ApplicationService.ImagesDirectory.FullName, $"{fileName}.png"));
             
             File.WriteAllBytes(exportPath.FullName,data.ToArray());
             

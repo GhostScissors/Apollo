@@ -29,10 +29,10 @@ public class SoundsViewModel
                     {
                         voiceLines.Decode(true, out string audioFormat, out byte[]? data);
                         
-                        var exportPath = new FileInfo(Path.Combine(ApplicationService.BinkaFiles.FullName, $"{voiceLines.Name}.{audioFormat}"));
+                        var exportPath = new FileInfo(Path.Combine(ApplicationService.AudioFilesDirectory.FullName, $"{voiceLines.Name}.{audioFormat}"));
                         
                         File.WriteAllBytes(exportPath.FullName, data!);
-                        Log.Information("Exported {name} at {export dir}", voiceLines.Name, exportPath.FullName);
+                        Log.Information("Exported {name} in {dir}", voiceLines.Name, exportPath.DirectoryName);
                     }
                     
                     if (!string.IsNullOrWhiteSpace(subtitles))
@@ -84,9 +84,9 @@ public class SoundsViewModel
         return null!;
     }
 
-    public void TryDecode()
+    public void DecodeBinkaToWav()
     {
-        var binkaFiles = new DirectoryInfo(ApplicationService.BinkaFiles.FullName).GetFiles("*.BINKA").OrderBy(f => f.LastWriteTime).ToList();
+        var binkaFiles = new DirectoryInfo(ApplicationService.AudioFilesDirectory.FullName).GetFiles("*.BINKA").OrderBy(f => f.LastWriteTime).ToList();
         
         var binkadecPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "binkadec.exe"));
         if (!File.Exists(binkadecPath.FullName))
@@ -97,16 +97,18 @@ public class SoundsViewModel
 
         foreach (var binkaFile in binkaFiles)
         {
-            var wavFilePath = new FileInfo(Path.Combine(ApplicationService.WavFiles.FullName, binkaFile.Name.Replace(binkaFile.Extension, ".wav")));
+            var wavFilePath = new FileInfo(Path.Combine(ApplicationService.AudioFilesDirectory.FullName, binkaFile.Name.Replace(binkaFile.Extension, ".wav")));
             
-            var binkadecPorcess = Process.Start(new ProcessStartInfo
+            var binkadecProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = binkadecPath.FullName,
                 Arguments = $"-i \"{binkaFile.FullName}\" -o \"{wavFilePath.FullName}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
             });
-            binkadecPorcess?.WaitForExit(5000);
+            binkadecProcess?.WaitForExit(1000);
+            
+            File.Delete(binkaFile.FullName);
             
             Log.Information("Successfully converted {file1} to {file2}", binkaFile.Name, wavFilePath.Name);
         }

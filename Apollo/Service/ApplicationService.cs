@@ -8,15 +8,14 @@ namespace Apollo.Service;
 
 public sealed class ApplicationService
 {
-    private static DirectoryInfo OutputDirectory = new(Path.Combine(Environment.CurrentDirectory, "Output"));
-    public static DirectoryInfo DataDirectory = new(Path.Combine(OutputDirectory.FullName, ".data"));
-    public static DirectoryInfo ManifestCacheDirectory = new(Path.Combine(DataDirectory.FullName, "ManifestCache"));
-    public static DirectoryInfo ChunkCacheDirectory = new(Path.Combine(DataDirectory.FullName, "ChunksCache"));
-    public static DirectoryInfo ExportDirectory = new(Path.Combine(OutputDirectory.FullName, "Export"));
-    public static DirectoryInfo BinkaFiles = new(Path.Combine(ExportDirectory.FullName, "Binka"));
-    public static DirectoryInfo WavFiles = new(Path.Combine(ExportDirectory.FullName, "Wav"));
-    public static DirectoryInfo Images = new(Path.Combine(ExportDirectory.FullName, "Images"));
-    public static DirectoryInfo Videos = new(Path.Combine(ExportDirectory.FullName, "Videos"));
+    private static readonly DirectoryInfo OutputDirectory = new(Path.Combine(Environment.CurrentDirectory, "Output"));
+    public static readonly DirectoryInfo DataDirectory = new(Path.Combine(OutputDirectory.FullName, ".data"));
+    public static readonly DirectoryInfo ManifestCacheDirectory = new(Path.Combine(DataDirectory.FullName, "ManifestCache"));
+    public static readonly DirectoryInfo ChunkCacheDirectory = new(Path.Combine(DataDirectory.FullName, "ChunksCache"));
+    public static readonly DirectoryInfo ExportDirectory = new(Path.Combine(OutputDirectory.FullName, "Export"));
+    public static readonly DirectoryInfo AudioFilesDirectory = new(Path.Combine(ExportDirectory.FullName, "Audios"));
+    public static readonly DirectoryInfo ImagesDirectory = new(Path.Combine(ExportDirectory.FullName, "Images"));
+    public static readonly DirectoryInfo VideosDirectory = new(Path.Combine(ExportDirectory.FullName, "Videos"));
     
     public static ApiEndpointViewModel ApiVM = new();
     public static CUE4ParseViewModel CUE4ParseVM = new();
@@ -36,10 +35,9 @@ public sealed class ApplicationService
         ManifestCacheDirectory.Create();
         ChunkCacheDirectory.Create();
         ExportDirectory.Create();
-        BinkaFiles.Create();
-        WavFiles.Create();
-        Images.Create();
-        Videos.Create();
+        AudioFilesDirectory.Create();
+        ImagesDirectory.Create();
+        VideosDirectory.Create();
     }
 
     public static void Deinitialize()
