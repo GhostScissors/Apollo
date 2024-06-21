@@ -84,7 +84,7 @@ public class SoundsViewModel
         return null!;
     }
 
-    public void ConvertBinkaToWav()
+    public void TryDecode()
     {
         var binkaFiles = new DirectoryInfo(ApplicationService.BinkaFiles.FullName).GetFiles("*.BINKA").OrderBy(f => f.LastWriteTime).ToList();
         

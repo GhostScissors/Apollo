@@ -17,7 +17,7 @@ public static class VideoUtils
             Log.Error("{name} not present in .data directory", ffmpegPath.Name);
         }
 
-        for (int i = 0; i < imageFiles.Count; i++)
+        for (var i = 0; i < imageFiles.Count; i++)
         {
             var outputPath = new FileInfo(Path.Combine(ApplicationService.Videos.FullName, audioFiles[i].Name.Replace(audioFiles[i].Extension, ".mp4")));
             
@@ -36,7 +36,7 @@ public static class VideoUtils
 
     public static void MakeFinalVideo()
     {
-        // MakeVideo();
+        MakeVideo();
         
         var videos = new DirectoryInfo(ApplicationService.Videos.FullName).GetFiles("*.mp4").OrderBy(f => f.LastWriteTime).ToList();
         var ffmpegPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "ffmpeg.exe"));
@@ -54,9 +54,9 @@ public static class VideoUtils
         {
             FileName = ffmpegPath.FullName,
             Arguments = $"-f concat -safe 0 -i {txtPath.FullName} -c copy {Path.Combine(ApplicationService.ExportDirectory.FullName, "output.mp4")}",
-            UseShellExecute = true,
+            UseShellExecute = false,
             CreateNoWindow = true
         });
-        ffmpegProcess?.WaitForExit(5000);
+        ffmpegProcess?.WaitForExit();
     }
 }

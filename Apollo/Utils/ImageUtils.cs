@@ -8,9 +8,17 @@ public static class ImageUtils
 {
     public static void MakeImage(string text, string fileName)
     {
-        const string backgroundImagePath = @"D:\Programming\Apollo\Apollo\Resources\We Needs This.png";
+        FileInfo backgroundImage = new(Path.Combine(ApplicationService.DataDirectory.FullName, "background.png"));
+        const string fontPath = @"D:\Programming\Apollo\Apollo\bin\Debug\net8.0\Output\.data\BurbankBigCondensed-Bold.ttf";
 
-        using (var backgroundBitmap = SKBitmap.Decode(backgroundImagePath))
+        var typeface = SKTypeface.FromFile(fontPath);
+        if (typeface == null)
+        {
+            Log.Error("Failed to load custom font");
+            return;
+        }
+        
+        using (var backgroundBitmap = SKBitmap.Decode(backgroundImage.FullName))
         {
             if (backgroundBitmap == null)
             {
@@ -25,14 +33,27 @@ public static class ImageUtils
             
             var paint = new SKPaint
             {
+                Typeface = typeface,
                 Color = SKColors.White,
                 IsAntialias = true,
                 Style = SKPaintStyle.Fill,
                 TextAlign = SKTextAlign.Center,
-                TextSize = 64
+                TextSize = 129
             };
+            
+            var lines = SplitTextIntoLines(text, backgroundBitmap.Width - 20, paint);
 
-            canvas.DrawText(text, 960F, 540F, paint);
+            var totalTextHeight = lines.Length * paint.TextSize + (lines.Length - 1) * 10;
+            var yStart = (backgroundBitmap.Height - totalTextHeight) / 2 + paint.TextSize;
+
+            var x = 960;
+            var y = yStart;
+
+            foreach (var line in lines)
+            {
+                canvas.DrawText(line, x, y, paint);
+                y += paint.TextSize + 10;
+            }
 
             using var image = surface.Snapshot();
             using var data = image.Encode(SKEncodedImageFormat.Png, 100);
@@ -47,7 +68,7 @@ public static class ImageUtils
     private static string[] SplitTextIntoLines(string text, float maxWidth, SKPaint paint)
     {
         var words = text.Split(' ');
-        var lines = new System.Collections.Generic.List<string>();
+        var lines = new List<string>();
         var currentLine = "";
 
         foreach (var word in words)
