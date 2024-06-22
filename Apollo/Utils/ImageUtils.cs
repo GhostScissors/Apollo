@@ -9,10 +9,10 @@ public static class ImageUtils
     public static void MakeImage(string text, string fileName)
     {
         FileInfo backgroundImage = new(Path.Combine(ApplicationService.DataDirectory.FullName, "background.png"));
-        const string fontPath = @"D:\Programming\Apollo\Apollo\bin\Debug\net8.0\Output\.data\BurbankBigCondensed-Bold.ttf";
+        FileInfo fontPath = new(Path.Combine(ApplicationService.DataDirectory.FullName, "BurbankBigCondensed-Bold.ttf"));
         const string credits = "via - @GhostScissors_ & @Loolo_WRLD";
 
-        var typeface = SKTypeface.FromFile(fontPath);
+        var typeface = SKTypeface.FromFile(fontPath.FullName);
         if (typeface == null)
         {
             Log.Error("Failed to load custom font");

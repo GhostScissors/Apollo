@@ -15,6 +15,7 @@ public static class VideoUtils
         if (!File.Exists(ffmpegPath.FullName))
         {
             Log.Error("{name} not present in .data directory", ffmpegPath.Name);
+            return;
         }
 
         for (var i = 0; i < imageFiles.Count; i++)
@@ -24,7 +25,7 @@ public static class VideoUtils
             var ffmpegProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = ffmpegPath.FullName,
-                Arguments = $"-loop 1 -i {imageFiles[i]} -i {audioFiles[i]} -c:v libx264 -c:a aac -b:a 192k -shortest -pix_fmt yuv420p {outputPath.FullName}",
+                Arguments = $"-loop 1 -i {imageFiles[i].FullName} -i {audioFiles[i].FullName} -c:v libx264 -c:a aac -b:a 192k -shortest -pix_fmt yuv420p {outputPath.FullName}",
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
@@ -42,7 +43,7 @@ public static class VideoUtils
         var ffmpegPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "ffmpeg.exe"));
         var txtPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "videos.txt"));
 
-        using (StreamWriter writer = new StreamWriter(txtPath.FullName))
+        using (var writer = new StreamWriter(txtPath.FullName))
         {
             foreach (var video in videos)
             {
@@ -58,5 +59,7 @@ public static class VideoUtils
             CreateNoWindow = true
         });
         ffmpegProcess?.WaitForExit(5000);
+        
+        Log.Information("Check ur output folder. Love Ghost :)");
     }
 }

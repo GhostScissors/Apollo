@@ -18,6 +18,6 @@ public class ProviderUtils
 
     public static bool TryGetPackageIndexExport<T>(FPackageIndex? packageIndex, out T export) where T : UObject
     {
-        return packageIndex.TryLoad(out export);
+        return packageIndex!.TryLoad(out export);
     }
 }
