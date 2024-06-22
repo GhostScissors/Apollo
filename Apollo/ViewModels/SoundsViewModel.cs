@@ -55,9 +55,9 @@ public class SoundsViewModel
                     ProviderUtils.TryGetPackageIndexExport(dialogueWaveIndex, out UObject dialogueWave))
                 {
                     var subtitles = GetSpokenText(dialogueWave);
-                    var fdf = GetSoundWave(dialogueWave);
+                    var soundWave = GetSoundWave(dialogueWave);
 
-                    return (subtitles, fdf);
+                    return (subtitles, soundWave);
                 }
             }
         }

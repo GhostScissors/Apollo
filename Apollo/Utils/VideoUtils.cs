@@ -25,13 +25,14 @@ public static class VideoUtils
             var ffmpegProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = ffmpegPath.FullName,
-                Arguments = $"-loop 1 -i {imageFiles[i].FullName} -i {audioFiles[i].FullName} -c:v libx264 -c:a aac -b:a 192k -shortest -pix_fmt yuv420p {outputPath.FullName}",
+                Arguments = $"-loop 1 -i \"{imageFiles[i].FullName}\" -i \"{audioFiles[i].FullName}\" -c:v libx264 -c:a aac -b:a 192k -shortest -pix_fmt yuv420p \"{outputPath}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
             ffmpegProcess?.WaitForExit(5000);
-            
-            Log.Information("Exported {name} at {dir}", outputPath.Name, outputPath.FullName);
+
+            string counter = $"{i + 1}/{imageFiles.Count}";
+            Log.Information("Exported {name} at {dir} ({howMany})", outputPath.Name, outputPath.FullName, counter);
         }
     }
 
@@ -42,7 +43,8 @@ public static class VideoUtils
         var videos = new DirectoryInfo(ApplicationService.VideosDirectory.FullName).GetFiles("*.mp4").OrderBy(f => f.LastWriteTime).ToList();
         var ffmpegPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "ffmpeg.exe"));
         var txtPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "videos.txt"));
-
+        var outputPath = new FileInfo(Path.Combine(Path.Combine(ApplicationService.ExportDirectory.FullName, "output.mp4")));
+        
         using (var writer = new StreamWriter(txtPath.FullName))
         {
             foreach (var video in videos)
@@ -54,9 +56,9 @@ public static class VideoUtils
         var ffmpegProcess = Process.Start(new ProcessStartInfo
         {
             FileName = ffmpegPath.FullName,
-            Arguments = $"-f concat -safe 0 -i {txtPath.FullName} -c copy {Path.Combine(ApplicationService.ExportDirectory.FullName, "output.mp4")}",
+            Arguments = $"-f concat -safe 0 -i \"{txtPath.FullName}\" -c copy \"{outputPath.FullName}\"",
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = false
         });
         ffmpegProcess?.WaitForExit(5000);
         

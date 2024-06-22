@@ -36,7 +36,7 @@ public class Program
 
         stopwatch.Stop();
         
-        Log.Information("All operations completed in {time} minutes. Press any key to exit", stopwatch.Elapsed.TotalMinutes);
+        Log.Information("All operations completed in {time} minutes. Press any key to exit", stopwatch.Elapsed.Minutes);
         Console.ReadKey();
     }
 }
