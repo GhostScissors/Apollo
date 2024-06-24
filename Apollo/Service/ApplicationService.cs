@@ -6,7 +6,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 namespace Apollo.Service;
 
-public sealed class ApplicationService
+public static class ApplicationService
 {
     private static readonly DirectoryInfo OutputDirectory = new(Path.Combine(Environment.CurrentDirectory, "Output"));
     public static readonly DirectoryInfo DataDirectory = new(Path.Combine(OutputDirectory.FullName, ".data"));

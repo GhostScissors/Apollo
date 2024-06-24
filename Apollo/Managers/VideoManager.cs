@@ -2,9 +2,9 @@
 using Apollo.Service;
 using Serilog;
 
-namespace Apollo.Utils;
+namespace Apollo.Managers;
 
-public static class VideoUtils
+public static class VideoManager
 {
     private static void MakeVideo()
     {
@@ -31,7 +31,7 @@ public static class VideoUtils
             });
             ffmpegProcess?.WaitForExit(5000);
 
-            string counter = $"{i + 1}/{imageFiles.Count}";
+            var counter = $"{i + 1}/{imageFiles.Count}";
             Log.Information("Exported {name} at {dir} ({howMany})", outputPath.Name, outputPath.FullName, counter);
         }
     }
@@ -58,10 +58,10 @@ public static class VideoUtils
             FileName = ffmpegPath.FullName,
             Arguments = $"-f concat -safe 0 -i \"{txtPath.FullName}\" -c copy \"{outputPath.FullName}\"",
             UseShellExecute = false,
-            CreateNoWindow = false
+            CreateNoWindow = true
         });
         ffmpegProcess?.WaitForExit(5000);
         
-        Log.Information("Check ur output folder. Love Ghost :)");
+        Log.Information("Check ur output folder. Love Ghost and Lulu :)");
     }
 }

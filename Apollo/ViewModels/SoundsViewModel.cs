@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Apollo.Managers;
 using Apollo.Service;
 using Apollo.Utils;
 using CUE4Parse_Conversion.Sounds;
@@ -36,7 +37,7 @@ public class SoundsViewModel
                     }
                     
                     if (!string.IsNullOrWhiteSpace(subtitles))
-                        ImageUtils.MakeImage(subtitles, voiceLines!.Name);
+                        ImageManager.MakeImage(subtitles, voiceLines!.Name);
                 }
             }
         }
