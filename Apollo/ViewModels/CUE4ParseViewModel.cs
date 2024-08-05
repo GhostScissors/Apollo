@@ -46,9 +46,6 @@ public class CUE4ParseViewModel
 
         foreach (var fileManifest in manifest.FileManifestList)
         {
-            if (!_fortniteLive.IsMatch(fileManifest.FileName))
-                continue;
-            
             if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" && 
                 fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
                 continue;

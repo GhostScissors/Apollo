@@ -1,4 +1,5 @@
 ﻿using Apollo.Service;
+using CUE4Parse.Utils;
 using Serilog;
 using SkiaSharp;
 
@@ -6,20 +7,20 @@ namespace Apollo.Managers;
 
 public static class ImageManager
 {
-    public static void MakeImage(string text, string fileName)
+    public static void MakeImage(string text, string folder, string fileName)
     {
-        FileInfo backgroundImage = new(Path.Combine(ApplicationService.DataDirectory.FullName, "background.png"));
-        FileInfo fontPath = new(Path.Combine(ApplicationService.DataDirectory.FullName, "BurbankBigCondensed-Bold.ttf"));
+        var backgroundImage = Path.Combine(ApplicationService.DataDirectory.FullName, "background.png");
+        var fontPath = Path.Combine(ApplicationService.DataDirectory.FullName, "BurbankBigCondensed-Bold.ttf");
         const string credits = "via - @GhostScissors_ & @Loolo_WRLD";
 
-        var typeface = SKTypeface.FromFile(fontPath.FullName);
+        var typeface = SKTypeface.FromFile(fontPath);
         if (typeface == null)
         {
             Log.Error("Failed to load custom font");
             return;
         }
 
-        using var backgroundBitmap = SKBitmap.Decode(backgroundImage.FullName);
+        using var backgroundBitmap = SKBitmap.Decode(backgroundImage);
         if (backgroundBitmap == null)
         {
             Log.Error("Failed to load background image");
@@ -69,11 +70,11 @@ public static class ImageManager
 
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        var exportPath = new FileInfo(Path.Combine(ApplicationService.ImagesDirectory.FullName, $"{fileName}.png"));
-            
-        File.WriteAllBytes(exportPath.FullName,data.ToArray());
-            
-        Log.Information("Exported {file} at {dir}", exportPath.Name, exportPath.FullName);
+        var exportPath = Path.Combine(ApplicationService.ImagesDirectory.FullName, folder, $"{fileName}.png");
+
+        Directory.CreateDirectory(exportPath.SubstringBeforeLast("\\"));
+        File.WriteAllBytesAsync(exportPath,data.ToArray());
+        Log.Information("Exported {file}", exportPath);
     }
     
     private static string[] SplitTextIntoLines(string text, float maxWidth, SKPaint paint)
