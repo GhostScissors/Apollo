@@ -27,6 +27,9 @@ public class ApiEndpointViewModel
     
     public async Task DownloadFileAsync(string url, string installationLocation)
     {
+        if (File.Exists(installationLocation))
+            return;
+        
         var request = new FRestRequest(url);
         var data = await _client.DownloadDataAsync(request).ConfigureAwait(false);
         if (data?.Length <= 0)

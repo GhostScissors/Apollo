@@ -21,30 +21,17 @@ public class CUE4ParseViewModel
     private readonly Regex _fortniteLive = new(@"^FortniteGame(/|\\)Content(/|\\)Paks(/|\\)",
         RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     
-    public StreamedFileProvider Provider { get; set; }
-    public List<VfsEntry> NewEntries { get; set; }
-
-    public CUE4ParseViewModel()
-    {
-        Provider = new StreamedFileProvider("FortniteGame", true, new(EGame.GAME_UE5_5));
-        NewEntries = new List<VfsEntry>();
-    }
+    public StreamedFileProvider Provider { get; } = new("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
+    public List<VfsEntry> NewEntries { get; } = [];
 
     public async Task Initialize(EUpdateMode updateMode)
     {
-        await InitOodle().ConfigureAwait(false);
-        await InitZlib().ConfigureAwait(false);
-
         ManifestInfo? manifestInfo;
         
         if (updateMode == EUpdateMode.UpdateMode)
-        {
             manifestInfo = await WatchForManifest().ConfigureAwait(false);
-        }
         else
-        {
             manifestInfo = await ApplicationService.ApiVM.EpicApi.GetManifestAsync().ConfigureAwait(false);
-        }
 
         Log.Information($"Downloading {manifestInfo?.Elements[0].BuildVersion}");
         var manifestOptions = new ManifestParseOptions
@@ -59,29 +46,27 @@ public class CUE4ParseViewModel
 
         foreach (var fileManifest in manifest.FileManifestList)
         {
-            var stopwatch = Stopwatch.StartNew();
-
+            if (!_fortniteLive.IsMatch(fileManifest.FileName))
+                continue;
+            
             if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" && 
                 fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
                 continue;
-                
-            if (!_fortniteLive.IsMatch(fileManifest.FileName))
-                continue;
-
+            
             // FFS ANNOYING SHIT SO I SKIDDED https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
             Provider.RegisterVfs(fileManifest.FileName, [fileManifest.GetStream()],
                 it => new FStreamArchive(it, manifest.FileManifestList.First(x => x.FileName.Equals(it)).GetStream(),
                     Provider.Versions));
-
-            stopwatch.Stop();
-
-            Log.Information("Downloaded {fileName} in {time} ms", fileManifest.FileName, stopwatch.ElapsedMilliseconds);
+            
+            Log.Information("Downloaded {fileName}", fileManifest.FileName);
         }
 
         await Provider.MountAsync();
+        await LoadMappings();
+        await LoadNewFiles();
     }
     
-    public async Task LoadMappings()
+    private async Task LoadMappings()
     {
         var mappings = await ApplicationService.ApiVM.FortniteCentralApi.GetMappingsAsync().ConfigureAwait(false);
         string mappingsPath;
@@ -98,7 +83,6 @@ public class CUE4ParseViewModel
             }
 
             mappingsPath = savedMappings.OrderBy(f => f.LastWriteTimeUtc).First().FullName;
-            Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(mappingsPath);
         }
         else
         {
@@ -106,13 +90,13 @@ public class CUE4ParseViewModel
             mappingsPath = Path.Combine(ApplicationService.DataDirectory.FullName, mappings[0].FileName);
             await ApplicationService.ApiVM.DownloadFileAsync(mappings[0].Url, mappingsPath);
             Log.Information("Downloaded {name} at {path}", mappings[0].FileName, mappingsPath);
-            Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(mappingsPath);
         }
 
+        Provider.MappingsContainer = new FileUsmapTypeMappingsProvider(mappingsPath);
         Log.Information("Mappings pulled from {path}", mappingsPath);
     }
     
-    public async Task LoadNewFiles()
+    private async Task LoadNewFiles()
     {
         await ApplicationService.BackupVM.DownloadBackup();
         var backupPath = ApplicationService.BackupVM.GetBackup();
@@ -151,7 +135,7 @@ public class CUE4ParseViewModel
         }
         
         stopwatch.Stop();
-        Log.Information("Loaded {files} in {time} ms", NewEntries.Count, stopwatch.ElapsedMilliseconds);
+        Log.Information("Loaded new {files} files", NewEntries.Count);
     }
     
     private async Task<ManifestInfo?> WatchForManifest()
@@ -176,27 +160,5 @@ public class CUE4ParseViewModel
 
         Log.Information("New Update Detected! New Build: {newVersion}", newManifest.Elements[0].BuildVersion);
         return newManifest;
-    }
-    
-    private async Task InitOodle()
-    {
-        var oodlePath = Path.Combine(ApplicationService.DataDirectory.FullName, OodleHelper.OODLE_DLL_NAME);
-        if (!File.Exists(oodlePath))
-        {
-            await OodleHelper.DownloadOodleDllAsync(oodlePath);
-        }
-
-        OodleHelper.Initialize(oodlePath);
-    }
-
-    private async Task InitZlib()
-    {
-        var zlibPath = Path.Combine(ApplicationService.DataDirectory.FullName, ZlibHelper.DLL_NAME);
-        if (!File.Exists(zlibPath))
-        {
-            await ZlibHelper.DownloadDllAsync(zlibPath);
-        }
-
-        ZlibHelper.Initialize(zlibPath);
     }
 }

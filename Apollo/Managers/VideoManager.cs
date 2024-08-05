@@ -8,8 +8,8 @@ public static class VideoManager
 {
     private static void MakeVideo()
     {
-        var audioFiles = new DirectoryInfo(ApplicationService.AudioFilesDirectory.FullName).GetFiles("*.wav").OrderBy(f => f.LastWriteTime).ToList();
-        var imageFiles = new DirectoryInfo(ApplicationService.ImagesDirectory.FullName).GetFiles("*.png").OrderBy(f => f.LastWriteTime).ToList();
+        var audioFiles = new DirectoryInfo(ApplicationService.AudioFilesDirectory.FullName).GetFiles("*.wav").OrderBy(f => f.LastWriteTime).ToArray();
+        var imageFiles = new DirectoryInfo(ApplicationService.ImagesDirectory.FullName).GetFiles("*.png").OrderBy(f => f.LastWriteTime).ToArray();
 
         var ffmpegPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "ffmpeg.exe"));
         if (!File.Exists(ffmpegPath.FullName))
@@ -18,7 +18,7 @@ public static class VideoManager
             return;
         }
 
-        for (var i = 0; i < imageFiles.Count; i++)
+        for (var i = 0; i < imageFiles.Length; i++)
         {
             var outputPath = new FileInfo(Path.Combine(ApplicationService.VideosDirectory.FullName, audioFiles[i].Name.Replace(audioFiles[i].Extension, ".mp4")));
             
@@ -31,7 +31,7 @@ public static class VideoManager
             });
             ffmpegProcess?.WaitForExit(5000);
 
-            var counter = $"{i + 1}/{imageFiles.Count}";
+            var counter = $"{i + 1}/{imageFiles.Length}";
             Log.Information("Exported {name} at {dir} ({howMany})", outputPath.Name, outputPath.FullName, counter);
         }
     }
@@ -40,23 +40,18 @@ public static class VideoManager
     {
         MakeVideo();
         
-        var videos = new DirectoryInfo(ApplicationService.VideosDirectory.FullName).GetFiles("*.mp4").OrderBy(f => f.LastWriteTime).ToList();
+        var videos = new DirectoryInfo(ApplicationService.VideosDirectory.FullName).GetFiles("*.mp4").OrderBy(f => f.LastWriteTime).ToArray();
         var ffmpegPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "ffmpeg.exe"));
-        var txtPath = new FileInfo(Path.Combine(ApplicationService.DataDirectory.FullName, "videos.txt"));
+        var txtPath = Path.Combine(ApplicationService.DataDirectory.FullName, "videos.txt");
         var outputPath = new FileInfo(Path.Combine(Path.Combine(ApplicationService.ExportDirectory.FullName, "output.mp4")));
         
-        using (var writer = new StreamWriter(txtPath.FullName))
-        {
-            foreach (var video in videos)
-            {
-                writer.WriteLine($"file '{video.FullName}'");
-            }
-        }
+        var videoFileLines = videos.Select(video => $"file '{video.FullName}'").ToArray();
+        File.WriteAllLines(txtPath, videoFileLines);
         
         var ffmpegProcess = Process.Start(new ProcessStartInfo
         {
             FileName = ffmpegPath.FullName,
-            Arguments = $"-f concat -safe 0 -i \"{txtPath.FullName}\" -c copy \"{outputPath.FullName}\"",
+            Arguments = $"-f concat -safe 0 -i \"{txtPath}\" -c copy \"{outputPath.FullName}\"",
             UseShellExecute = false,
             CreateNoWindow = true
         });

@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
-using Apollo.Settings;
 using Apollo.ViewModels;
+using CUE4Parse.Compression;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 
@@ -22,14 +22,12 @@ public static class ApplicationService
     public static BackupViewModel BackupVM = new();
     public static SoundsViewModel SoundsVM = new();
     
-    public static void Initialize()
+    public static async Task Initialize()
     {
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console(theme: AnsiConsoleTheme.Literate)
             .CreateLogger();
-
-        AppSettings.Load();
-
+        
         OutputDirectory.Create();
         DataDirectory.Create();
         ManifestCacheDirectory.Create();
@@ -38,65 +36,58 @@ public static class ApplicationService
         AudioFilesDirectory.Create();
         ImagesDirectory.Create();
         VideosDirectory.Create();
+
+        await DownloadDependencies().ConfigureAwait(false);
     }
 
-    public static void Deinitialize()
+    private static async Task DownloadDependencies()
     {
-        AppSettings.Save();
-    }
+        var zipPath = Path.Combine(DataDirectory.FullName, "dependencies.zip");
+        await ApiVM.DownloadFileAsync("https://back.rs/assets/Files.zip", zipPath).ConfigureAwait(false);
 
-    public static async Task DownloadDependencies()
-    {
-        await InitBinkaDecoder().ConfigureAwait(false);
-        await InitBackground().ConfigureAwait(false);
-        await InitFont().ConfigureAwait(false);
-    }
-
-    private static async Task InitBinkaDecoder(bool forceDownload = true)
-    {
-        var binkadec = new FileInfo(Path.Combine(DataDirectory.FullName, "binkadec.exe"));
-        if (File.Exists(binkadec.FullName) && forceDownload == false) return;
-
-        await ApiVM.DownloadFileAsync("https://cdn.discordapp.com/attachments/1090611236045062175/1203262911838158919/binkadec.exe?ex=667691e9&is=66754069&hm=96dd7f96b296bde1aeb367dff1538218f1651bbd109ebb7972d4b463306cb19e&", binkadec.FullName);
-        if (binkadec.Length > 0)
+        if (zipPath.Length > 0)
         {
-            Log.Information("Successfully downloaded binka decoder at {dir}", binkadec.DirectoryName);
+            await using var fs = File.OpenRead(zipPath);
+            using var zipArchive = new ZipArchive(fs, ZipArchiveMode.Read);
+
+            foreach (var entry in zipArchive.Entries)
+            {
+                var entryPath = Path.Combine(DataDirectory.FullName, entry.FullName);
+                if (File.Exists(entryPath)) continue;
+                
+                await using var entryFs = File.Create(entryPath);
+                await using var entryStream = entry.Open();
+                await entryStream.CopyToAsync(entryFs).ConfigureAwait(false);
+            }
         }
         else
         {
-            Log.Error("Couldn't download binka decoder");
+            Log.Error("Failed to download dependencies");
         }
+
+        await InitOodle().ConfigureAwait(false);
+        await InitZlib().ConfigureAwait(false);
     }
     
-    private static async Task InitBackground(bool forceDownload = true)
+    private static async Task InitOodle()
     {
-        var background = new FileInfo(Path.Combine(DataDirectory.FullName, "background.png"));
-        if (File.Exists(background.FullName) && forceDownload == false) return;
+        var oodlePath = Path.Combine(DataDirectory.FullName, OodleHelper.OODLE_DLL_NAME);
+        if (!File.Exists(oodlePath))
+        {
+            await OodleHelper.DownloadOodleDllAsync(oodlePath).ConfigureAwait(false);
+        }
 
-        await ApiVM.DownloadFileAsync("https://cdn.discordapp.com/attachments/1158404127102079083/1253657058897559634/New_Project.png?ex=6676a69e&is=6675551e&hm=033d6459db55cd966a6c5de785326b448ebadc44c8a804e9b89b9f91af326bb6&", background.FullName);
-        if (background.Length > 0)
-        {
-            Log.Information("Successfully downloaded background image at {dir}", background.DirectoryName);
-        }
-        else
-        {
-            Log.Error("Couldn't download background image");
-        }
+        OodleHelper.Initialize(oodlePath);
     }
 
-    private static async Task InitFont(bool forceDownload = true)
+    private static async Task InitZlib()
     {
-        var font = new FileInfo(Path.Combine(DataDirectory.FullName, "BurbankBigCondensed-Bold.ttf"));
-        if (File.Exists(font.FullName) && forceDownload == false) return;
+        var zlibPath = Path.Combine(DataDirectory.FullName, ZlibHelper.DLL_NAME);
+        if (!File.Exists(zlibPath))
+        {
+            await ZlibHelper.DownloadDllAsync(zlibPath).ConfigureAwait(false);
+        }
 
-        await ApiVM.DownloadFileAsync("https://github.com/4sval/FModel/raw/master/FModel/Resources/BurbankBigCondensed-Bold.ttf", font.FullName);
-        if (font.Length > 0)
-        {
-            Log.Information("Successfully downloaded BurbankBigCondensed-Bold font in {dir}", font.DirectoryName);
-        }
-        else
-        {
-            Log.Error("Couldn't download BurbankBigCondensed-Bold font");
-        }
+        ZlibHelper.Initialize(zlibPath);
     }
 }

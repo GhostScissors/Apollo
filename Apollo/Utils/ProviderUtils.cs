@@ -6,9 +6,9 @@ namespace Apollo.Utils;
 
 public class ProviderUtils
 {
-    public static UObject LoadAllObjects(string packagePath)
+    public static UObject LoadObject(string packagePath)
     {
-        return ApplicationService.CUE4ParseVM.Provider.LoadAllObjects(packagePath).First();
+        return ApplicationService.CUE4ParseVM.Provider.LoadObject(packagePath);
     }
     
     public static bool TryLoadObject<T>(string fullPath, out T export) where T : UObject
