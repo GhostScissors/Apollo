@@ -8,14 +8,14 @@ namespace Apollo.Service;
 
 public static class ApplicationService
 {
-    private static readonly DirectoryInfo OutputDirectory = new(Path.Combine(Environment.CurrentDirectory, "Output"));
-    public static readonly DirectoryInfo DataDirectory = new(Path.Combine(OutputDirectory.FullName, ".data"));
-    public static readonly DirectoryInfo ManifestCacheDirectory = new(Path.Combine(DataDirectory.FullName, "ManifestCache"));
-    public static readonly DirectoryInfo ChunkCacheDirectory = new(Path.Combine(DataDirectory.FullName, "ChunksCache"));
-    public static readonly DirectoryInfo ExportDirectory = new(Path.Combine(OutputDirectory.FullName, "Export"));
-    public static readonly DirectoryInfo AudioFilesDirectory = new(Path.Combine(ExportDirectory.FullName, "Audios"));
-    public static readonly DirectoryInfo ImagesDirectory = new(Path.Combine(ExportDirectory.FullName, "Images"));
-    public static readonly DirectoryInfo VideosDirectory = new(Path.Combine(ExportDirectory.FullName, "Videos"));
+    private static string OutputDirectory = Path.Combine(Environment.CurrentDirectory, "Output");
+    public static readonly string DataDirectory = Path.Combine(OutputDirectory, ".data");
+    public static readonly string ManifestCacheDirectory = Path.Combine(DataDirectory, "ManifestCache");
+    public static readonly string ChunkCacheDirectory = Path.Combine(DataDirectory, "ChunksCache");
+    public static readonly string ExportDirectory = Path.Combine(OutputDirectory, "Export");
+    public static readonly string AudioFilesDirectory = Path.Combine(ExportDirectory, "Audios");
+    public static readonly string ImagesDirectory = Path.Combine(ExportDirectory, "Images");
+    public static readonly string VideosDirectory = Path.Combine(ExportDirectory, "Videos");
     
     public static ApiEndpointViewModel ApiVM = new();
     public static CUE4ParseViewModel CUE4ParseVM = new();
@@ -27,22 +27,19 @@ public static class ApplicationService
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console(theme: AnsiConsoleTheme.Literate)
             .CreateLogger();
-        
-        OutputDirectory.Create();
-        DataDirectory.Create();
-        ManifestCacheDirectory.Create();
-        ChunkCacheDirectory.Create();
-        ExportDirectory.Create();
-        AudioFilesDirectory.Create();
-        ImagesDirectory.Create();
-        VideosDirectory.Create();
+
+        foreach (var directory in new[] { OutputDirectory, DataDirectory, ManifestCacheDirectory, ChunkCacheDirectory, ExportDirectory, AudioFilesDirectory, ImagesDirectory, VideosDirectory })
+        {
+            if (!Directory.Exists(directory))
+                Directory.CreateDirectory(directory);
+        }
 
         await DownloadDependencies().ConfigureAwait(false);
     }
 
     private static async Task DownloadDependencies()
     {
-        var zipPath = Path.Combine(DataDirectory.FullName, "dependencies.zip");
+        var zipPath = Path.Combine(DataDirectory, "dependencies.zip");
         await ApiVM.DownloadFileAsync("https://back.rs/assets/Files.zip", zipPath).ConfigureAwait(false);
 
         if (zipPath.Length > 0)
@@ -52,7 +49,7 @@ public static class ApplicationService
 
             foreach (var entry in zipArchive.Entries)
             {
-                var entryPath = Path.Combine(DataDirectory.FullName, entry.FullName);
+                var entryPath = Path.Combine(DataDirectory, entry.FullName);
                 if (File.Exists(entryPath)) continue;
                 
                 await using var entryFs = File.Create(entryPath);
@@ -71,7 +68,7 @@ public static class ApplicationService
     
     private static async Task InitOodle()
     {
-        var oodlePath = Path.Combine(DataDirectory.FullName, OodleHelper.OODLE_DLL_NAME);
+        var oodlePath = Path.Combine(DataDirectory, OodleHelper.OODLE_DLL_NAME);
         if (!File.Exists(oodlePath))
         {
             await OodleHelper.DownloadOodleDllAsync(oodlePath).ConfigureAwait(false);
@@ -82,7 +79,7 @@ public static class ApplicationService
 
     private static async Task InitZlib()
     {
-        var zlibPath = Path.Combine(DataDirectory.FullName, ZlibHelper.DLL_NAME);
+        var zlibPath = Path.Combine(DataDirectory, ZlibHelper.DLL_NAME);
         if (!File.Exists(zlibPath))
         {
             await ZlibHelper.DownloadDllAsync(zlibPath).ConfigureAwait(false);

@@ -9,8 +9,8 @@ public static class ImageManager
 {
     public static void MakeImage(string text, string folder, string fileName)
     {
-        var backgroundImage = Path.Combine(ApplicationService.DataDirectory.FullName, "background.png");
-        var fontPath = Path.Combine(ApplicationService.DataDirectory.FullName, "BurbankBigCondensed-Bold.ttf");
+        var backgroundImage = Path.Combine(ApplicationService.DataDirectory, "background.png");
+        var fontPath = Path.Combine(ApplicationService.DataDirectory, "BurbankBigCondensed-Bold.ttf");
         const string credits = "via - @GhostScissors_ & @Loolo_WRLD";
 
         var typeface = SKTypeface.FromFile(fontPath);
@@ -70,7 +70,7 @@ public static class ImageManager
 
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        var exportPath = Path.Combine(ApplicationService.ImagesDirectory.FullName, folder, $"{fileName}.png");
+        var exportPath = Path.Combine(ApplicationService.ImagesDirectory, folder, $"{fileName}.png");
 
         Directory.CreateDirectory(exportPath.SubstringBeforeLast("\\"));
         File.WriteAllBytesAsync(exportPath,data.ToArray());

@@ -30,7 +30,7 @@ public class SoundsViewModel
                     {
                         voiceLines.Decode(true, out var audioFormat, out var data);
 
-                        var path = Path.Combine(ApplicationService.AudioFilesDirectory.FullName, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
+                        var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
                         Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
                         File.WriteAllBytesAsync(path, data);
                         Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
@@ -87,9 +87,9 @@ public class SoundsViewModel
 
     public void DecodeBinkaToWav()
     {
-        var binkaFiles = Directory.GetFiles(ApplicationService.AudioFilesDirectory.FullName, "*.binka", SearchOption.AllDirectories);
+        var binkaFiles = Directory.GetFiles(ApplicationService.AudioFilesDirectory, "*.binka", SearchOption.AllDirectories);
         
-        var binkadecPath = Path.Combine(ApplicationService.DataDirectory.FullName, "binkadec.exe");
+        var binkadecPath = Path.Combine(ApplicationService.DataDirectory, "binkadec.exe");
         if (!File.Exists(binkadecPath))
         {
             Log.Error("Binka Decoder doesn't exist in .data folder");
@@ -98,7 +98,7 @@ public class SoundsViewModel
 
         Parallel.ForEach(binkaFiles, binkaFile =>
         {
-            var wavFilePath = Path.ChangeExtension(Path.Combine(ApplicationService.AudioFilesDirectory.FullName, binkaFile), "wav");
+            var wavFilePath = Path.ChangeExtension(Path.Combine(ApplicationService.AudioFilesDirectory, binkaFile), "wav");
             var binkadecProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = binkadecPath,

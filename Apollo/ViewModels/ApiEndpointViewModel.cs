@@ -34,7 +34,7 @@ public class ApiEndpointViewModel
         var data = await _client.DownloadDataAsync(request).ConfigureAwait(false);
         if (data?.Length <= 0)
         {
-            Log.Error("An error occured downloaded the file");
+            Log.Error("An error occured while downloading the file");
             return;
         }
 

@@ -4,6 +4,7 @@ using Apollo.Managers;
 using Apollo.Service;
 using Apollo.Utils;
 using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
 using Spectre.Console;
 
 namespace Apollo;

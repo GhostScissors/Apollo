@@ -18,9 +18,6 @@ namespace Apollo.ViewModels;
 
 public class CUE4ParseViewModel
 {
-    private readonly Regex _fortniteLive = new(@"^FortniteGame(/|\\)Content(/|\\)Paks(/|\\)",
-        RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-    
     public StreamedFileProvider Provider { get; } = new("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
     public List<VfsEntry> NewEntries { get; } = [];
 
@@ -36,8 +33,8 @@ public class CUE4ParseViewModel
         Log.Information($"Downloading {manifestInfo?.Elements[0].BuildVersion}");
         var manifestOptions = new ManifestParseOptions
         {
-            ManifestCacheDirectory = ApplicationService.ManifestCacheDirectory.FullName,
-            ChunkCacheDirectory = ApplicationService.ChunkCacheDirectory.FullName,
+            ManifestCacheDirectory = ApplicationService.ManifestCacheDirectory,
+            ChunkCacheDirectory = ApplicationService.ChunkCacheDirectory,
             Zlibng = ZlibHelper.Instance,
             ChunkBaseUrl = "http://epicgames-download1.akamaized.net/Builds/Fortnite/CloudDir/",
         };
@@ -68,11 +65,11 @@ public class CUE4ParseViewModel
         var mappings = await ApplicationService.ApiVM.FortniteCentralApi.GetMappingsAsync().ConfigureAwait(false);
         string mappingsPath;
 
-        if (mappings!.Length <= 0)
+        if (mappings?.Length <= 0)
         {
             Log.Warning("Response from FortniteCentral was invalid. Trying to find saved mappings");
 
-            var savedMappings = new DirectoryInfo(ApplicationService.DataDirectory.FullName).GetFiles("*.usmap");
+            var savedMappings = new DirectoryInfo(ApplicationService.DataDirectory).GetFiles("*.usmap");
             if (savedMappings.Length <= 0)
             {
                 Log.Error("Failed to find saved mappings");
@@ -84,7 +81,7 @@ public class CUE4ParseViewModel
         else
         {
             Log.Information("Downloading {name}", mappings[0].FileName);
-            mappingsPath = Path.Combine(ApplicationService.DataDirectory.FullName, mappings[0].FileName);
+            mappingsPath = Path.Combine(ApplicationService.DataDirectory, mappings[0].FileName);
             await ApplicationService.ApiVM.DownloadFileAsync(mappings[0].Url, mappingsPath);
             Log.Information("Downloaded {name} at {path}", mappings[0].FileName, mappingsPath);
         }
@@ -132,7 +129,7 @@ public class CUE4ParseViewModel
         }
         
         stopwatch.Stop();
-        Log.Information("Loaded new {files} files", NewEntries.Count);
+        Log.Information("Loaded {files} new files", NewEntries.Count);
     }
     
     private async Task<ManifestInfo?> WatchForManifest()
