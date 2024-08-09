@@ -18,10 +18,10 @@ public class SoundsViewModel
     public void ExportBinkaAudioFiles()
     {
         var soundSequences = ApplicationService.CUE4ParseVM.NewEntries.Where(x => x.Path.StartsWith("FortniteGame/Plugins/GameFeatures/BattlePassS30_Quests/Content/Audio/VO/SoundSequences/"));
-        foreach (var soundSequence in soundSequences)
+        Parallel.ForEach(soundSequences, soundSequence =>
         {
             var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
-            Parallel.For((long)0, soundSequenceObject.SoundSequenceData.Length, i =>
+            for (var i = 0; i < soundSequenceObject.SoundSequenceData.Length; i++)
             {
                 var soundSequenceData = soundSequenceObject.SoundSequenceData[i];
 
@@ -34,27 +34,31 @@ public class SoundsViewModel
                     {
                         var voiceLines = GetSoundWave(dialogueWave);
                         var subtitles = GetSpokenText(dialogueWave);
-                        
-                        voiceLines.Decode(true, out var audioFormat, out var data);
 
-                        var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
-                        Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
+                        if (voiceLines != null && subtitles != null)
+                        {
+                            voiceLines.Decode(true, out var audioFormat, out var data);
 
-                        File.WriteAllBytesAsync(path, data ?? throw new NullReferenceException("The selected soundwave was null"));
-                        Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
-                        ImageManager.MakeImage(subtitles, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}");
+                            var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
+                            Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
+
+                            File.WriteAllBytes(path, data);
+                            Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
+
+                            ImageManager.MakeImage(subtitles, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}");
+                        }
                     }
                 }
-            });
-        }
+            }
+        });
     }
 
-    private string GetSpokenText(UObject dialogueWave)
+    private string? GetSpokenText(UObject dialogueWave)
     {
-        return dialogueWave.TryGetValue(out string spokenText, "SpokenText") ? spokenText : "No subtitles found";
+        return dialogueWave.TryGetValue(out string spokenText, "SpokenText") ? spokenText : null;
     }
 
-    private USoundWave GetSoundWave(UObject dialogueWave)
+    private USoundWave? GetSoundWave(UObject dialogueWave)
     {
         if (dialogueWave.TryGetValue(out FStructFallback[] contextMappings, "ContextMappings"))
         {
@@ -65,7 +69,7 @@ public class SoundsViewModel
             }
         }
 
-        return new USoundWave();
+        return null;
     }
 
     public void DecodeBinkaToWav()
@@ -79,7 +83,7 @@ public class SoundsViewModel
             return;
         }
 
-        Parallel.ForEach(binkaFiles, binkaFile =>
+        foreach (var binkaFile in binkaFiles)
         {
             var wavFilePath = Path.ChangeExtension(Path.Combine(ApplicationService.AudioFilesDirectory, binkaFile), "wav");
             var binkadecProcess = Process.Start(new ProcessStartInfo
@@ -89,10 +93,10 @@ public class SoundsViewModel
                 UseShellExecute = false,
                 CreateNoWindow = true,
             });
-            binkadecProcess?.WaitForExit(500);
+            binkadecProcess?.WaitForExit(1000);
             
             File.Delete(binkaFile);
             Log.Information("Successfully converted '{file1}' to .wav", binkaFile);
-        });
+        };
     }
 }

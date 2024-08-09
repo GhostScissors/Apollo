@@ -8,7 +8,7 @@ namespace Apollo.Managers;
 
 public static class VideoManager
 {
-    private static void MakeVideo()
+    private static void MakeVideo(int degreeOfParallelism)
     {
         var demuxer = new List<string>();
         var audioFiles = Directory.GetFiles(ApplicationService.AudioFilesDirectory, "*.wav", SearchOption.AllDirectories);
@@ -20,11 +20,10 @@ public static class VideoManager
             Log.Error("{name} not present in .data directory", ffmpegPath.Name);
             return;
         }
-        
-        for (var i = 0; i < imageFiles.Length; i++)
+
+        Parallel.For(0, imageFiles.Length, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, i =>
         {
-            var ss = audioFiles[i].SubstringAfterLast($"{ApplicationService.AudioFilesDirectory}\\");
-            var outputPath = Path.Combine(ApplicationService.VideosDirectory, Path.ChangeExtension(ss, "mp4"));
+            var outputPath = Path.Combine(ApplicationService.VideosDirectory, Path.ChangeExtension(audioFiles[i], ".mp4"));
             var ffmpegProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = ffmpegPath.FullName,
@@ -32,19 +31,20 @@ public static class VideoManager
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
-            ffmpegProcess?.WaitForExit(5000);
-            
+            ffmpegProcess?.WaitForExit();
+
+
             demuxer.Add($"file '{outputPath}'");
             Log.Information("Exported {name} ({counter})", outputPath, $"{i + 1}/{imageFiles.Length}");
-        }
+        });
 
-        demuxer.Sort((x, y) => string.Compare(x, y, StringComparison.Ordinal));
+        demuxer.Sort(new NaturalStringComparer());
         File.WriteAllLines(Path.Combine(ApplicationService.DataDirectory, "videos.txt"), demuxer);
     }
 
-    public static void MakeFinalVideo()
+    public static void MakeFinalVideo(int degreeOfParallelism)
     {
-        MakeVideo();
+        MakeVideo(degreeOfParallelism);
         
         var txtPath = Path.Combine(ApplicationService.DataDirectory, "videos.txt");
         var outputPath = Path.Combine(ApplicationService.ExportDirectory, "output.mp4");

@@ -23,14 +23,14 @@ public class Program
 #else
         var updateMode = EUpdateMode.GetNew;
 #endif
-
+        var degreeOfParallelism = AnsiConsole.Prompt(new TextPrompt<int>("Please input the degree of parallelism (4, 5 and 6 are preferred)"));
         var stopwatch = Stopwatch.StartNew();
         
         await ApplicationService.Initialize().ConfigureAwait(false);
         await ApplicationService.CUE4ParseVM.Initialize(updateMode).ConfigureAwait(false);
         ApplicationService.SoundsVM.ExportBinkaAudioFiles();
         ApplicationService.SoundsVM.DecodeBinkaToWav();
-        VideoManager.MakeFinalVideo();
+        VideoManager.MakeFinalVideo(degreeOfParallelism);
 
         stopwatch.Stop();
         

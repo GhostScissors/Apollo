@@ -41,21 +41,26 @@ public class CUE4ParseViewModel
 
         var (manifest, _) = await manifestInfo!.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
 
-        foreach (var fileManifest in manifest.FileManifestList)
+        Parallel.ForEach(manifest.FileManifestList, fileManifest =>
         {
-            if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" && 
+            if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" &&
                 fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
-                continue;
-            
+                return;
+
             // FFS ANNOYING SHIT SO I SKIDDED https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
             Provider.RegisterVfs(fileManifest.FileName, [fileManifest.GetStream()],
                 it => new FStreamArchive(it, manifest.FileManifestList.First(x => x.FileName.Equals(it)).GetStream(),
                     Provider.Versions));
-            
+
             Log.Information("Downloaded {fileName}", fileManifest.FileName);
+        });
+
+        foreach (var fileManifest in manifest.FileManifestList)
+        {
+            
         }
 
-        await Provider.MountAsync();
+        await Provider.MountAsync().ConfigureAwait(false);
         await LoadMappings();
         await LoadNewFiles();
     }

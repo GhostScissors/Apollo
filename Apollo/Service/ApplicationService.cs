@@ -33,6 +33,12 @@ public static class ApplicationService
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
         }
+        
+        var exportedFiles = Directory.GetFiles(ExportDirectory, "*.*", SearchOption.AllDirectories);
+        foreach (var exportedFile in exportedFiles)
+        {
+            File.Delete(exportedFile);
+        }
 
         await DownloadDependencies().ConfigureAwait(false);
     }
