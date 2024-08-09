@@ -3,6 +3,7 @@ using Apollo.Managers;
 using Apollo.Service;
 using Apollo.Utils;
 using CUE4Parse_Conversion.Sounds;
+using CUE4Parse.GameTypes.FN.Assets.Exports.Sound;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Exports.Sound;
 using CUE4Parse.UE4.Assets.Objects;
@@ -19,51 +20,33 @@ public class SoundsViewModel
         var soundSequences = ApplicationService.CUE4ParseVM.NewEntries.Where(x => x.Path.StartsWith("FortniteGame/Plugins/GameFeatures/BattlePassS30_Quests/Content/Audio/VO/SoundSequences/"));
         foreach (var soundSequence in soundSequences)
         {
-            var dialogueUObject = ProviderUtils.LoadObject(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
-            if (dialogueUObject.TryGetValue(out FStructFallback[] soundSequencesData, "SoundSequenceData"))
+            var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
+            Parallel.For((long)0, soundSequenceObject.SoundSequenceData.Length, i =>
             {
-                Parallel.For(0, soundSequencesData.Length, i =>
-                {
-                    var (subtitles, voiceLines) = LoadDialogueWave(soundSequencesData[i]);
+                var soundSequenceData = soundSequenceObject.SoundSequenceData[i];
 
-                    if (voiceLines != null)
+                if (soundSequenceData.Sound.Name.StartsWith("VO_", StringComparison.OrdinalIgnoreCase) &&
+                    ProviderUtils.TryGetPackageIndexExport(soundSequenceData.Sound.FirstNode, out UObject soundNodeDialoguePlayer))
+                {
+                    if (soundNodeDialoguePlayer.TryGetValue(out FStructFallback dialogueWaveParameter, "DialogueWaveParameter") &&
+                        dialogueWaveParameter.TryGetValue(out FPackageIndex dialogueWaveIndex, "DialogueWave") &&
+                        ProviderUtils.TryGetPackageIndexExport(dialogueWaveIndex, out UObject dialogueWave))
                     {
+                        var voiceLines = GetSoundWave(dialogueWave);
+                        var subtitles = GetSpokenText(dialogueWave);
+                        
                         voiceLines.Decode(true, out var audioFormat, out var data);
 
                         var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
                         Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
-                        File.WriteAllBytesAsync(path, data);
-                        Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
-                    }
 
-                    if (!string.IsNullOrWhiteSpace(subtitles))
-                    {
+                        File.WriteAllBytesAsync(path, data ?? throw new NullReferenceException("The selected soundwave was null"));
+                        Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
                         ImageManager.MakeImage(subtitles, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}");
                     }
-                });
-            }
+                }
+            });
         }
-    }
-    
-    private (string, USoundWave) LoadDialogueWave(FStructFallback struc)
-    {
-        if (struc.TryGetValue(out FPackageIndex sound, "Sound") &&
-            sound.Name.StartsWith("VO_", StringComparison.OrdinalIgnoreCase) &&
-            ProviderUtils.TryGetPackageIndexExport(sound, out USoundCue soundCue) &&
-            ProviderUtils.TryGetPackageIndexExport(soundCue.FirstNode, out UObject soundNodeDialoguePlayer))
-        {
-            if (soundNodeDialoguePlayer.TryGetValue(out FStructFallback dialogueWaveParameter, "DialogueWaveParameter") &&
-                dialogueWaveParameter.TryGetValue(out FPackageIndex dialogueWaveIndex, "DialogueWave") &&
-                ProviderUtils.TryGetPackageIndexExport(dialogueWaveIndex, out UObject dialogueWave))
-            {
-                var subtitles = GetSpokenText(dialogueWave);
-                var soundWave = GetSoundWave(dialogueWave);
-
-                return (subtitles, soundWave);
-            }
-        }
-
-        return (null, null)!;
     }
 
     private string GetSpokenText(UObject dialogueWave)
@@ -82,7 +65,7 @@ public class SoundsViewModel
             }
         }
 
-        return null!;
+        return new USoundWave();
     }
 
     public void DecodeBinkaToWav()
@@ -106,8 +89,8 @@ public class SoundsViewModel
                 UseShellExecute = false,
                 CreateNoWindow = true,
             });
-            binkadecProcess?.WaitForExit(1000);
-
+            binkadecProcess?.WaitForExit(500);
+            
             File.Delete(binkaFile);
             Log.Information("Successfully converted '{file1}' to .wav", binkaFile);
         });

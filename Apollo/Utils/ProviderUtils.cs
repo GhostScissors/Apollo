@@ -11,9 +11,9 @@ public class ProviderUtils
         return ApplicationService.CUE4ParseVM.Provider.LoadObject(packagePath);
     }
     
-    public static bool TryLoadObject<T>(string fullPath, out T export) where T : UObject
+    public static T LoadObject<T>(string packagePath) where T : UObject
     {
-        return ApplicationService.CUE4ParseVM.Provider.TryLoadObject(fullPath, out export);
+        return ApplicationService.CUE4ParseVM.Provider.LoadObject<T>(packagePath);
     }
 
     public static bool TryGetPackageIndexExport<T>(FPackageIndex? packageIndex, out T export) where T : UObject

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using Apollo.Service;
+using CUE4Parse.Utils;
 using Serilog;
 
 namespace Apollo.Managers;
@@ -22,7 +23,8 @@ public static class VideoManager
         
         for (var i = 0; i < imageFiles.Length; i++)
         {
-            var outputPath = Path.Combine(ApplicationService.VideosDirectory, Path.ChangeExtension(audioFiles[i], ".mp4"));
+            var ss = audioFiles[i].SubstringAfterLast($"{ApplicationService.AudioFilesDirectory}\\");
+            var outputPath = Path.Combine(ApplicationService.VideosDirectory, Path.ChangeExtension(ss, "mp4"));
             var ffmpegProcess = Process.Start(new ProcessStartInfo
             {
                 FileName = ffmpegPath.FullName,
@@ -35,7 +37,7 @@ public static class VideoManager
             demuxer.Add($"file '{outputPath}'");
             Log.Information("Exported {name} ({counter})", outputPath, $"{i + 1}/{imageFiles.Length}");
         }
-        
+
         demuxer.Sort((x, y) => string.Compare(x, y, StringComparison.Ordinal));
         File.WriteAllLines(Path.Combine(ApplicationService.DataDirectory, "videos.txt"), demuxer);
     }
@@ -53,9 +55,11 @@ public static class VideoManager
             UseShellExecute = false,
             CreateNoWindow = true
         });
-        ffmpegProcess?.WaitForExit(5000);
-        
+        ffmpegProcess?.WaitForExit();
+
+#if !DEBUG
         File.Delete(txtPath);
+#endif
         Log.Information("Created the final video at {location}. Love Ghost and Lulu :)", outputPath);
     }
 }
