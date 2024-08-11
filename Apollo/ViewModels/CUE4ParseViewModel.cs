@@ -3,8 +3,10 @@ using System.Text.RegularExpressions;
 using Apollo.Enums;
 using Apollo.Service;
 using CUE4Parse.Compression;
+using CUE4Parse.Encryption.Aes;
 using CUE4Parse.FileProvider;
 using CUE4Parse.MappingsProvider;
+using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
 using CUE4Parse.UE4.VirtualFileSystem;
@@ -19,13 +21,13 @@ namespace Apollo.ViewModels;
 public class CUE4ParseViewModel
 {
     public StreamedFileProvider Provider { get; } = new("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
-    public List<VfsEntry> NewEntries { get; } = [];
+    public List<VfsEntry> Entries { get; } = [];
 
-    public async Task Initialize(EUpdateMode updateMode)
+    public async Task Initialize(EUpdateMode updateMode, string pakNumber)
     {
         ManifestInfo? manifestInfo;
         
-        if (updateMode == EUpdateMode.UpdateMode)
+        if (updateMode == EUpdateMode.WaitForUpdate)
             manifestInfo = await WatchForManifest().ConfigureAwait(false);
         else
             manifestInfo = await ApplicationService.ApiVM.EpicApi.GetManifestAsync().ConfigureAwait(false);
@@ -40,11 +42,12 @@ public class CUE4ParseViewModel
         };
 
         var (manifest, _) = await manifestInfo!.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
-
+        
         Parallel.ForEach(manifest.FileManifestList, fileManifest =>
         {
             if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" &&
-                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
+                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc" &&
+                fileManifest.FileName != $"FortniteGame/Content/Paks/pakchunk{pakNumber}-WindowsClient.utoc")
                 return;
 
             // FFS ANNOYING SHIT SO I SKIDDED https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
@@ -54,15 +57,20 @@ public class CUE4ParseViewModel
 
             Log.Information("Downloaded {fileName}", fileManifest.FileName);
         });
+        
+        var aes = await ApplicationService.ApiVM.FortniteCentralApi.GetAesAsync().ConfigureAwait(false);
+        List<KeyValuePair<FGuid, FAesKey>> aesKeys = [ new KeyValuePair<FGuid, FAesKey>(new FGuid(), new FAesKey(aes?.MainKey ?? "")) ];
+        aesKeys.AddRange(aes!.DynamicKeys.Select(dynamicKey => new KeyValuePair<FGuid, FAesKey>(new FGuid(dynamicKey.Guid), new FAesKey(dynamicKey.Key))));
 
-        foreach (var fileManifest in manifest.FileManifestList)
-        {
-            
-        }
-
+        await Provider.SubmitKeysAsync(aesKeys).ConfigureAwait(false);
+        
         await Provider.MountAsync().ConfigureAwait(false);
         await LoadMappings();
-        await LoadNewFiles();
+
+        if (updateMode == EUpdateMode.GetPakFiles)
+            LoadPakFiles($"pakchunk{pakNumber}-WindowsClient.utoc");
+        else
+            await LoadNewFiles().ConfigureAwait(false);
     }
     
     private async Task LoadMappings()
@@ -130,11 +138,27 @@ public class CUE4ParseViewModel
             if (value is not VfsEntry entry || paths.ContainsKey(key) || entry.Path.EndsWith(".uexp") ||
                 entry.Path.EndsWith(".ubulk") || entry.Path.EndsWith(".uptnl")) continue;
 
-            NewEntries.Add(entry);
+            Entries.Add(entry);
         }
         
         stopwatch.Stop();
-        Log.Information("Loaded {files} new files", NewEntries.Count);
+        Log.Information("Loaded {files} new files", Entries.Count);
+    }
+
+    private void LoadPakFiles(string filter)
+    {
+        foreach (var asset in Provider.Files.Values)
+        {
+            if (asset is not VfsEntry entry || entry.Path.EndsWith(".uexp") || entry.Path.EndsWith(".ubulk") || entry.Path.EndsWith(".uptnl"))
+                continue;
+
+            if (filter.Contains(entry.Vfs.Name))
+            {
+                Entries.Add(entry);
+            }
+        }
+        
+        Log.Information("Loaded {files} files for {pakName}", Entries.Count, filter);
     }
     
     private async Task<ManifestInfo?> WatchForManifest()

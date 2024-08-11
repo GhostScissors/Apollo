@@ -10,6 +10,7 @@ using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.Utils;
 using Serilog;
+using Spectre.Console;
 
 namespace Apollo.ViewModels;
 
@@ -17,7 +18,17 @@ public class SoundsViewModel
 {
     public void ExportBinkaAudioFiles()
     {
-        var soundSequences = ApplicationService.CUE4ParseVM.NewEntries.Where(x => x.Path.StartsWith("FortniteGame/Plugins/GameFeatures/BattlePassS30_Quests/Content/Audio/VO/SoundSequences/"));
+        var soundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => x.Path.StartsWith("FortniteGame/Plugins/GameFeatures/BattlePassS31_Quests/Content/Audio/VO/SoundSequences/")).ToArray();
+        if (soundSequences.Length == 0)
+        {
+            Log.Warning("No files found");
+            var soundSequencesPath = AnsiConsole.Prompt(new TextPrompt<string>("Please enter the file path to the Sound Sequences")
+                .PromptStyle("green")
+                .Validate(f => f.Length == 0 ? ValidationResult.Success() : ValidationResult.Error("[red]You donut.[/]")));
+
+            soundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => x.Path.StartsWith(soundSequencesPath)).ToArray();
+        }
+            
         Parallel.ForEach(soundSequences, soundSequence =>
         {
             var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
@@ -35,18 +46,16 @@ public class SoundsViewModel
                         var voiceLines = GetSoundWave(dialogueWave);
                         var subtitles = GetSpokenText(dialogueWave);
 
-                        if (voiceLines != null && subtitles != null)
-                        {
-                            voiceLines.Decode(true, out var audioFormat, out var data);
+                        if (voiceLines == null || subtitles == null) continue;
+                        voiceLines.Decode(true, out var audioFormat, out var data);
 
-                            var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
-                            Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
+                        var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
+                        Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
 
-                            File.WriteAllBytes(path, data);
-                            Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
+                        File.WriteAllBytes(path, data);
+                        Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
 
-                            ImageManager.MakeImage(subtitles, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}");
-                        }
+                        ImageManager.MakeImage(subtitles, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}");
                     }
                 }
             }

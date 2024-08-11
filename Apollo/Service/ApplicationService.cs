@@ -10,6 +10,7 @@ public static class ApplicationService
 {
     private static string OutputDirectory = Path.Combine(Environment.CurrentDirectory, "Output");
     public static readonly string DataDirectory = Path.Combine(OutputDirectory, ".data");
+    public static readonly string LogsDirectory = Path.Combine(OutputDirectory, "Logs");
     public static readonly string ManifestCacheDirectory = Path.Combine(DataDirectory, "ManifestCache");
     public static readonly string ChunkCacheDirectory = Path.Combine(DataDirectory, "ChunksCache");
     public static readonly string ExportDirectory = Path.Combine(OutputDirectory, "Export");
@@ -26,9 +27,10 @@ public static class ApplicationService
     {
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console(theme: AnsiConsoleTheme.Literate)
+            .WriteTo.File(Path.Combine(LogsDirectory, $"Apollo-{DateTime.Now:dd-MM-yyyy}.log"))
             .CreateLogger();
 
-        foreach (var directory in new[] { OutputDirectory, DataDirectory, ManifestCacheDirectory, ChunkCacheDirectory, ExportDirectory, AudioFilesDirectory, ImagesDirectory, VideosDirectory })
+        foreach (var directory in new[] { OutputDirectory, DataDirectory, ManifestCacheDirectory, ChunkCacheDirectory, ExportDirectory, AudioFilesDirectory, ImagesDirectory, VideosDirectory, LogsDirectory })
         {
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
