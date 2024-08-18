@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Apollo.Managers;
 using Apollo.Service;
 using Apollo.Utils;
@@ -10,29 +11,19 @@ using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.Utils;
 using Serilog;
-using Spectre.Console;
 
 namespace Apollo.ViewModels;
 
-public class SoundsViewModel
+public partial class SoundsViewModel
 {
-    public void ExportBinkaAudioFiles()
+    public async Task ExportVoiceLines()
     {
-        var soundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => x.Path.StartsWith("FortniteGame/Plugins/GameFeatures/BattlePassS31_Quests/Content/Audio/VO/SoundSequences/")).ToArray();
-        if (soundSequences.Length == 0)
-        {
-            Log.Warning("No files found");
-            var soundSequencesPath = AnsiConsole.Prompt(new TextPrompt<string>("Please enter the file path to the Sound Sequences")
-                .PromptStyle("green")
-                .Validate(f => f.Length == 0 ? ValidationResult.Success() : ValidationResult.Error("[red]You donut.[/]")));
+        var soundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => MyRegex().IsMatch(x.Path)).ToArray();
 
-            soundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => x.Path.StartsWith(soundSequencesPath)).ToArray();
-        }
-            
-        Parallel.ForEach(soundSequences, soundSequence =>
+        await Parallel.ForEachAsync(soundSequences, async (soundSequence, CancellationToken) =>
         {
             var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
-            for (var i = 0; i < soundSequenceObject.SoundSequenceData.Length; i++)
+            for (int i = 0; i < soundSequenceObject.SoundSequenceData.Length; i++)
             {
                 var soundSequenceData = soundSequenceObject.SoundSequenceData[i];
 
@@ -49,7 +40,8 @@ public class SoundsViewModel
                         if (voiceLines == null || subtitles == null) continue;
                         voiceLines.Decode(true, out var audioFormat, out var data);
 
-                        var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
+                        var path = Path.Combine(ApplicationService.AudioFilesDirectory,
+                            soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
                         Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
 
                         File.WriteAllBytes(path, data);
@@ -102,10 +94,13 @@ public class SoundsViewModel
                 UseShellExecute = false,
                 CreateNoWindow = true,
             });
-            binkadecProcess?.WaitForExit(1000);
+            binkadecProcess?.WaitForExit(5000);
             
             File.Delete(binkaFile);
             Log.Information("Successfully converted '{file1}' to .wav", binkaFile);
         };
     }
+
+    [GeneratedRegex(@"^FortniteGame/Plugins/GameFeatures/[\w_]+/Content/Audio/VO/SoundSequences/")]
+    private static partial Regex MyRegex();
 }

@@ -21,6 +21,14 @@ public static class VideoManager
             return;
         }
 
+        Log.Information("Audio Files Count: {count}", audioFiles.Length);
+        Log.Information("Image Files Count: {count}", imageFiles.Length);
+        if (audioFiles.Length != imageFiles.Length)
+            Log.Warning("The number of audio files do not match with the number of image files");
+        
+        Log.Information("Degree of Parallelism: {d}", degreeOfParallelism);
+        
+        var counter = 1;
         Parallel.For(0, imageFiles.Length, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, i =>
         {
             var outputPath = Path.Combine(ApplicationService.VideosDirectory, Path.ChangeExtension(audioFiles[i], ".mp4"));
@@ -35,7 +43,9 @@ public static class VideoManager
 
 
             demuxer.Add($"file '{outputPath}'");
-            Log.Information("Exported {name} ({counter})", outputPath, $"{i + 1}/{imageFiles.Length}");
+            Log.Information("Exported {name} ({counter})", outputPath, $"{counter}/{imageFiles.Length}");
+
+            Interlocked.Increment(ref counter);
         });
 
         demuxer.Sort(new NaturalStringComparer());
@@ -60,6 +70,6 @@ public static class VideoManager
 #if !DEBUG
         File.Delete(txtPath);
 #endif
-        Log.Information("Created the final video at {location}. Love Ghost and Lulu :)", outputPath);
+        Log.Information("Created the final video at {location}. Love Ghost, Asval and Lulu :)", outputPath);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using System.Reflection;
 using Apollo.ViewModels;
 using CUE4Parse.Compression;
 using Serilog;
@@ -38,9 +39,7 @@ public static class ApplicationService
         
         var exportedFiles = Directory.GetFiles(ExportDirectory, "*.*", SearchOption.AllDirectories);
         foreach (var exportedFile in exportedFiles)
-        {
             File.Delete(exportedFile);
-        }
 
         await DownloadDependencies().ConfigureAwait(false);
     }
@@ -48,7 +47,7 @@ public static class ApplicationService
     private static async Task DownloadDependencies()
     {
         var zipPath = Path.Combine(DataDirectory, "dependencies.zip");
-        await ApiVM.DownloadFileAsync("https://back.rs/assets/Files.zip", zipPath).ConfigureAwait(false);
+        await ApiVM.DownloadFileAsync("https://api.myna.lol/sharp/windows", zipPath).ConfigureAwait(false);
 
         if (zipPath.Length > 0)
         {
@@ -70,8 +69,24 @@ public static class ApplicationService
             Log.Error("Failed to download dependencies");
         }
 
+        await InitBackground().ConfigureAwait(false);
         await InitOodle().ConfigureAwait(false);
         await InitZlib().ConfigureAwait(false);
+    }
+
+    private static async Task InitBackground()
+    {
+        var resourceName = "Apollo.Resources.background.png";
+        string outputPath = Path.Combine(DataDirectory, "background.png");
+        
+        var assembly = Assembly.GetExecutingAssembly();
+
+        await using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+        if (resourceStream == null)
+            throw new NullReferenceException("Resource not found");
+
+        await using var fileStream = new FileStream(outputPath, FileMode.Create);
+        await resourceStream.CopyToAsync(fileStream).ConfigureAwait(false);
     }
     
     private static async Task InitOodle()

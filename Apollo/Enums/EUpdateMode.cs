@@ -6,5 +6,4 @@ public enum EUpdateMode
 {
     GetNewFiles,
     WaitForUpdate,
-    GetPakFiles
 }

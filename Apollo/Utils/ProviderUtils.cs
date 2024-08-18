@@ -6,11 +6,6 @@ namespace Apollo.Utils;
 
 public class ProviderUtils
 {
-    public static UObject LoadObject(string packagePath)
-    {
-        return ApplicationService.CUE4ParseVM.Provider.LoadObject(packagePath);
-    }
-    
     public static T LoadObject<T>(string packagePath) where T : UObject
     {
         return ApplicationService.CUE4ParseVM.Provider.LoadObject<T>(packagePath);

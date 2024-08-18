@@ -21,23 +21,14 @@ public class Program
             .MoreChoicesText("[grey](Move up and down to see more options)[/]")
             .AddChoices(Enum.GetValues<EUpdateMode>()));
 #else
-        var updateMode = EUpdateMode.GetPakFiles;
+        var updateMode = EUpdateMode.GetNewFiles;
 #endif
-        var degreeOfParallelism = Environment.ProcessorCount / 5;
-        string? pakNumber = null;
-        
-        // Log.Information(Environment.ProcessorCount.ToString());
-        
-        if (updateMode == EUpdateMode.GetPakFiles)
-            pakNumber = AnsiConsole.Prompt(new TextPrompt<string?>("Please input the pak number you want to load")
-                .PromptStyle("green")
-                .Validate(f => f.Length == 4 ? ValidationResult.Success() : ValidationResult.Error("[red]You donut. I said input the number.[/]")).AllowEmpty());
-        
         var stopwatch = Stopwatch.StartNew();
+        var degreeOfParallelism = Environment.ProcessorCount / 4;
         
         await ApplicationService.Initialize().ConfigureAwait(false);
-        await ApplicationService.CUE4ParseVM.Initialize(updateMode, pakNumber).ConfigureAwait(false);
-        ApplicationService.SoundsVM.ExportBinkaAudioFiles();
+        await ApplicationService.CUE4ParseVM.Initialize(updateMode).ConfigureAwait(false);
+        await ApplicationService.SoundsVM.ExportVoiceLines();
         ApplicationService.SoundsVM.DecodeBinkaToWav();
         VideoManager.MakeFinalVideo(degreeOfParallelism);
 

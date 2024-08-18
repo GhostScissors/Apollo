@@ -23,7 +23,7 @@ public class CUE4ParseViewModel
     public StreamedFileProvider Provider { get; } = new("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
     public List<VfsEntry> Entries { get; } = [];
 
-    public async Task Initialize(EUpdateMode updateMode, string pakNumber)
+    public async Task Initialize(EUpdateMode updateMode)
     {
         ManifestInfo? manifestInfo;
         
@@ -47,7 +47,7 @@ public class CUE4ParseViewModel
         {
             if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" &&
                 fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc" &&
-                fileManifest.FileName != $"FortniteGame/Content/Paks/pakchunk{pakNumber}-WindowsClient.utoc")
+                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient_s1.ucas") // Make UESharp public already
                 return;
 
             // FFS ANNOYING SHIT SO I SKIDDED https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
@@ -58,19 +58,9 @@ public class CUE4ParseViewModel
             Log.Information("Downloaded {fileName}", fileManifest.FileName);
         });
         
-        var aes = await ApplicationService.ApiVM.FortniteCentralApi.GetAesAsync().ConfigureAwait(false);
-        List<KeyValuePair<FGuid, FAesKey>> aesKeys = [ new KeyValuePair<FGuid, FAesKey>(new FGuid(), new FAesKey(aes?.MainKey ?? "")) ];
-        aesKeys.AddRange(aes!.DynamicKeys.Select(dynamicKey => new KeyValuePair<FGuid, FAesKey>(new FGuid(dynamicKey.Guid), new FAesKey(dynamicKey.Key))));
-
-        await Provider.SubmitKeysAsync(aesKeys).ConfigureAwait(false);
-        
         await Provider.MountAsync().ConfigureAwait(false);
         await LoadMappings();
-
-        if (updateMode == EUpdateMode.GetPakFiles)
-            LoadPakFiles($"pakchunk{pakNumber}-WindowsClient.utoc");
-        else
-            await LoadNewFiles().ConfigureAwait(false);
+        await LoadNewFiles().ConfigureAwait(false);
     }
     
     private async Task LoadMappings()
@@ -143,22 +133,6 @@ public class CUE4ParseViewModel
         
         stopwatch.Stop();
         Log.Information("Loaded {files} new files", Entries.Count);
-    }
-
-    private void LoadPakFiles(string filter)
-    {
-        foreach (var asset in Provider.Files.Values)
-        {
-            if (asset is not VfsEntry entry || entry.Path.EndsWith(".uexp") || entry.Path.EndsWith(".ubulk") || entry.Path.EndsWith(".uptnl"))
-                continue;
-
-            if (filter.Contains(entry.Vfs.Name))
-            {
-                Entries.Add(entry);
-            }
-        }
-        
-        Log.Information("Loaded {files} files for {pakName}", Entries.Count, filter);
     }
     
     private async Task<ManifestInfo?> WatchForManifest()

@@ -25,4 +25,13 @@
       <ProjectReference Include="..\CUE4Parse\CUE4Parse\CUE4Parse.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Folder Include="Resources" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <None Remove="Resources\background.png" />
+        <EmbeddedResource Include="Resources\background.png" />
+    </ItemGroup>
+    
 </Project>
