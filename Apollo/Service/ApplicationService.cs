@@ -27,6 +27,8 @@ public static class ApplicationService
     public static async Task Initialize()
     {
         Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .Enrich.FromLogContext()
             .WriteTo.Console(theme: AnsiConsoleTheme.Literate)
             .WriteTo.File(Path.Combine(LogsDirectory, $"Apollo-{DateTime.Now:dd-MM-yyyy}.log"))
             .CreateLogger();

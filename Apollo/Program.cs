@@ -28,9 +28,10 @@ public class Program
         
         await ApplicationService.Initialize().ConfigureAwait(false);
         await ApplicationService.CUE4ParseVM.Initialize(updateMode).ConfigureAwait(false);
-        await ApplicationService.SoundsVM.ExportVoiceLines();
+        ApplicationService.SoundsVM.ExportVoiceLines();
         ApplicationService.SoundsVM.DecodeBinkaToWav();
         VideoManager.MakeFinalVideo(degreeOfParallelism);
+        await DiscordService.InitializeAsync().ConfigureAwait(false);
 
         stopwatch.Stop();
         

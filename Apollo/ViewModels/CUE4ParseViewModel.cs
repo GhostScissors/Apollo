@@ -20,8 +20,14 @@ namespace Apollo.ViewModels;
 
 public class CUE4ParseViewModel
 {
-    public StreamedFileProvider Provider { get; } = new("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
-    public List<VfsEntry> Entries { get; } = [];
+    public StreamedFileProvider Provider { get; }
+    public List<VfsEntry> Entries { get; }
+
+    public CUE4ParseViewModel()
+    {
+        Provider = new StreamedFileProvider("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
+        Entries = new List<VfsEntry>();
+    }
 
     public async Task Initialize(EUpdateMode updateMode)
     {
@@ -41,13 +47,12 @@ public class CUE4ParseViewModel
             ChunkBaseUrl = "http://epicgames-download1.akamaized.net/Builds/Fortnite/CloudDir/",
         };
 
-        var (manifest, _) = await manifestInfo!.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
+        var (manifest, build) = await manifestInfo!.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
         
         Parallel.ForEach(manifest.FileManifestList, fileManifest =>
         {
             if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" &&
-                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc" &&
-                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient_s1.ucas") // Make UESharp public already
+                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
                 return;
 
             // FFS ANNOYING SHIT SO I SKIDDED https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
@@ -59,7 +64,7 @@ public class CUE4ParseViewModel
         });
         
         await Provider.MountAsync().ConfigureAwait(false);
-        await LoadMappings();
+        await LoadMappings().ConfigureAwait(false);
         await LoadNewFiles().ConfigureAwait(false);
     }
     

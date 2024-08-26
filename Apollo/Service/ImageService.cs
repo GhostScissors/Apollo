@@ -1,11 +1,10 @@
-﻿using Apollo.Service;
-using CUE4Parse.Utils;
+﻿using CUE4Parse.Utils;
 using Serilog;
 using SkiaSharp;
 
-namespace Apollo.Managers;
+namespace Apollo.Service;
 
-public static class ImageManager
+public static class ImageService
 {
     public static void MakeImage(string text, string folder, string fileName)
     {
