@@ -22,7 +22,6 @@
       <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
       <PackageReference Include="SkiaSharp" Version="2.88.8" />
       <PackageReference Include="Spectre.Console" Version="0.49.1" />
-      <PackageReference Include="TwitterSharp" Version="2.4.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -36,7 +35,16 @@
     
     <ItemGroup>
         <None Remove="Resources\background.png" />
+        <None Remove="Resources\ffmpeg.exe" />
+        <None Remove="Resources\background.exe" />
+        <None Remove="Resources\burbankbigcondensed_bold.otf" />
+    </ItemGroup>
+    
+    <ItemGroup>
         <EmbeddedResource Include="Resources\background.png" />
+        <EmbeddedResource Include="Resources\ffmpeg.exe" />
+        <EmbeddedResource Include="Resources\binkadec.exe" />
+        <EmbeddedResource Include="Resources\burbankbigcondensed_bold.otf" />
     </ItemGroup>
     
 </Project>

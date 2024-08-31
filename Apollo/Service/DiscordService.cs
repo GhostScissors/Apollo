@@ -25,8 +25,6 @@ public static class DiscordService
         await Client.StartAsync();
 
         await SendVideo();
-        
-        await Task.Delay(5000);
     }
 
     private static async Task SendVideo()

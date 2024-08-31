@@ -26,7 +26,7 @@ public class CUE4ParseViewModel
     public CUE4ParseViewModel()
     {
         Provider = new StreamedFileProvider("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
-        Entries = new List<VfsEntry>();
+        Entries = [];
     }
 
     public async Task Initialize(EUpdateMode updateMode)

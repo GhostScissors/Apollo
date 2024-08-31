@@ -27,7 +27,6 @@ public static class ApplicationService
     public static async Task Initialize()
     {
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Verbose()
             .Enrich.FromLogContext()
             .WriteTo.Console(theme: AnsiConsoleTheme.Literate)
             .WriteTo.File(Path.Combine(LogsDirectory, $"Apollo-{DateTime.Now:dd-MM-yyyy}.log"))
@@ -43,52 +42,28 @@ public static class ApplicationService
         foreach (var exportedFile in exportedFiles)
             File.Delete(exportedFile);
 
-        await DownloadDependencies().ConfigureAwait(false);
+        await InitResources().ConfigureAwait(false);
     }
 
-    private static async Task DownloadDependencies()
+    private static async Task InitResources()
     {
-        var zipPath = Path.Combine(DataDirectory, "dependencies.zip");
-        await ApiVM.DownloadFileAsync("https://api.myna.lol/sharp/windows", zipPath).ConfigureAwait(false);
-
-        if (zipPath.Length > 0)
+        foreach (var fileName in new[] { "background.png", "ffmpeg.exe", "binkadec.exe", "burbankbigcondensed_bold.otf" })
         {
-            await using var fs = File.OpenRead(zipPath);
-            using var zipArchive = new ZipArchive(fs, ZipArchiveMode.Read);
+            var resourceName =  $"Apollo.Resources.{fileName}";
+            var outputPath = Path.Combine(DataDirectory, fileName);
+        
+            var assembly = Assembly.GetExecutingAssembly();
 
-            foreach (var entry in zipArchive.Entries)
-            {
-                var entryPath = Path.Combine(DataDirectory, entry.FullName);
-                if (File.Exists(entryPath)) continue;
-                
-                await using var entryFs = File.Create(entryPath);
-                await using var entryStream = entry.Open();
-                await entryStream.CopyToAsync(entryFs).ConfigureAwait(false);
-            }
-        }
-        else
-        {
-            Log.Error("Failed to download dependencies");
-        }
+            await using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+            if (resourceStream == null)
+                throw new NullReferenceException("Resource not found");
 
-        await InitBackground().ConfigureAwait(false);
+            await using var fileStream = new FileStream(outputPath, FileMode.Create);
+            await resourceStream.CopyToAsync(fileStream).ConfigureAwait(false);
+        }
+        
         await InitOodle().ConfigureAwait(false);
         await InitZlib().ConfigureAwait(false);
-    }
-
-    private static async Task InitBackground()
-    {
-        var resourceName = "Apollo.Resources.background.png";
-        string outputPath = Path.Combine(DataDirectory, "background.png");
-        
-        var assembly = Assembly.GetExecutingAssembly();
-
-        await using var resourceStream = assembly.GetManifestResourceStream(resourceName);
-        if (resourceStream == null)
-            throw new NullReferenceException("Resource not found");
-
-        await using var fileStream = new FileStream(outputPath, FileMode.Create);
-        await resourceStream.CopyToAsync(fileStream).ConfigureAwait(false);
     }
     
     private static async Task InitOodle()

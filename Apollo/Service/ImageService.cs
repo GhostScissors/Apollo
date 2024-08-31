@@ -9,22 +9,16 @@ public static class ImageService
     public static void MakeImage(string text, string folder, string fileName)
     {
         var backgroundImage = Path.Combine(ApplicationService.DataDirectory, "background.png");
-        var fontPath = Path.Combine(ApplicationService.DataDirectory, "BurbankBigCondensed-Bold.ttf");
+        var fontPath = Path.Combine(ApplicationService.DataDirectory, "burbankbigcondensed_bold.otf");
         const string credits = "via - @GhostScissors_ & @Loolo_WRLD";
 
         var typeface = SKTypeface.FromFile(fontPath);
         if (typeface == null)
-        {
-            Log.Error("Failed to load custom font");
-            return;
-        }
+            throw new FileNotFoundException("Font file does not exist");
 
         using var backgroundBitmap = SKBitmap.Decode(backgroundImage);
         if (backgroundBitmap == null)
-        {
-            Log.Error("Failed to load background image");
-            return;
-        }
+            throw new FileNotFoundException("Background file does not exist");
 
         using var surface = SKSurface.Create(new SKImageInfo(backgroundBitmap.Width, backgroundBitmap.Height));
         using var canvas = surface.Canvas;
