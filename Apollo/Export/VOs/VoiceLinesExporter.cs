@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Apollo.Managers;
 using Apollo.Service;
 using Apollo.Utils;
 using CUE4Parse_Conversion.Sounds;
@@ -12,21 +13,20 @@ using CUE4Parse.UE4.VirtualFileSystem;
 using CUE4Parse.Utils;
 using Serilog;
 
-namespace Apollo.ViewModels;
+namespace Apollo.Export.VOs;
 
-public partial class SoundsViewModel
+public partial class VoiceLinesExporter : IExporter
 {
-    private VfsEntry[] SoundSequences { get; set; }
+    private VfsEntry[] SoundSequences;
 
-    public SoundsViewModel()
+    public VoiceLinesExporter()
     {
         SoundSequences = [];
     }
     
-    public void ExportVoiceLines()
+    public async Task Export()
     {
         SoundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => MyRegex().IsMatch(x.Path)).ToArray();
-        
         foreach (var soundSequence in SoundSequences)
         {
             var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
@@ -52,12 +52,15 @@ public partial class SoundsViewModel
                 var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
                 Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
 
-                File.WriteAllBytes(path, data);
+                await File.WriteAllBytesAsync(path, data).ConfigureAwait(false);
                 Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
 
                 ImageService.MakeImage(subtitles, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}");
             }
-        };
+        }
+
+        DecodeBinkaToWav();
+        VideoManager.MakeFinalVideo(Environment.ProcessorCount / 4);
     }
 
     private string? GetSpokenText(UObject dialogueWave)
@@ -74,8 +77,8 @@ public partial class SoundsViewModel
 
         return null;
     }
-
-    public void DecodeBinkaToWav()
+    
+    private static void DecodeBinkaToWav()
     {
         var binkaFiles = Directory.GetFiles(ApplicationService.AudioFilesDirectory, "*.binka", SearchOption.AllDirectories);
         
@@ -89,7 +92,7 @@ public partial class SoundsViewModel
         foreach (var binkaFile in binkaFiles)
         {
             var wavFilePath = Path.ChangeExtension(Path.Combine(ApplicationService.AudioFilesDirectory, binkaFile), "wav");
-            var binkadecProcess = Process.Start(new ProcessStartInfo
+            var binkadecProcess = Process.Start(new ProcessStartInfo()
             {
                 FileName = binkadecPath,
                 Arguments = $"-i \"{binkaFile}\" -o \"{wavFilePath}\"",
@@ -100,7 +103,7 @@ public partial class SoundsViewModel
             
             File.Delete(binkaFile);
             Log.Information("Successfully converted '{file1}' to .wav", binkaFile);
-        };
+        }
     }
 
     [GeneratedRegex(@"^FortniteGame/Plugins/GameFeatures/[\w_]+/Content/Audio/VO/SoundSequences/")]

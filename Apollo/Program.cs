@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using Apollo.Enums;
+using Apollo.Export;
 using Apollo.Managers;
 using Apollo.Service;
 using Apollo.Utils;
+using CUE4Parse;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using Spectre.Console;
@@ -24,13 +26,10 @@ public class Program
         var updateMode = EUpdateMode.GetNewFiles;
 #endif
         var stopwatch = Stopwatch.StartNew();
-        var degreeOfParallelism = Environment.ProcessorCount / 4;
         
         await ApplicationService.Initialize().ConfigureAwait(false);
         await ApplicationService.CUE4ParseVM.Initialize(updateMode).ConfigureAwait(false);
-        ApplicationService.SoundsVM.ExportVoiceLines();
-        ApplicationService.SoundsVM.DecodeBinkaToWav();
-        VideoManager.MakeFinalVideo(degreeOfParallelism);
+        await Exporter.VoiceLines.Export();
         await DiscordService.InitializeAsync().ConfigureAwait(false);
 
         stopwatch.Stop();

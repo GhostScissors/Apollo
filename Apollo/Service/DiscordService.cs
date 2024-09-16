@@ -24,10 +24,10 @@ public static class DiscordService
         await Client.LoginAsync(TokenType.Bot, Token);
         await Client.StartAsync();
 
-        await SendVideo();
+        await SendVideoAsync();
     }
 
-    private static async Task SendVideo()
+    private static async Task SendVideoAsync()
     {
         var channel = await Client.GetChannelAsync(ChannelId) as IMessageChannel;
         var videoPath = Path.Combine(ApplicationService.ExportDirectory, "output.mp4");
