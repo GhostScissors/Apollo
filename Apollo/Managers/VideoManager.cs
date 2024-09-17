@@ -31,6 +31,11 @@ public static class VideoManager
         var counter = 1;
         Parallel.For(0, imageFiles.Length, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, i =>
         {
+            Interlocked.Increment(ref counter);
+        });
+
+        for (var i = 0; i < imageFiles.Length; i++)
+        {
             var outputPath = Path.Combine(ApplicationService.VideosDirectory, Path.ChangeExtension(audioFiles[i], ".mp4"));
             var ffmpegProcess = Process.Start(new ProcessStartInfo
             {
@@ -43,10 +48,8 @@ public static class VideoManager
 
 
             demuxer.Add($"file '{outputPath}'");
-            Log.Information("Exported {name} ({counter})", outputPath, $"{counter}/{imageFiles.Length}");
-
-            Interlocked.Increment(ref counter);
-        });
+            Log.Information("Exported {name} ({counter})", outputPath, $"{i}/{imageFiles.Length}");
+        }
 
         demuxer.Sort(new NaturalStringComparer());
         File.WriteAllLines(Path.Combine(ApplicationService.DataDirectory, "videos.txt"), demuxer);
