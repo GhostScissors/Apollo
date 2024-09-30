@@ -55,7 +55,7 @@ public class CUE4ParseViewModel
                 fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
                 return;
 
-            // FFS ANNOYING SHIT SO I SKIDDED https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
+            // https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
             Provider.RegisterVfs(fileManifest.FileName, [fileManifest.GetStream()],
                 it => new FStreamArchive(it, manifest.FileManifestList.First(x => x.FileName.Equals(it)).GetStream(),
                     Provider.Versions));
@@ -102,7 +102,6 @@ public class CUE4ParseViewModel
     {
         await ApplicationService.BackupVM.DownloadBackup();
         var backupPath = ApplicationService.BackupVM.GetBackup();
-
         var stopwatch = Stopwatch.StartNew();
 
         await using var fileStream = new FileStream(backupPath, FileMode.Open);
@@ -121,11 +120,27 @@ public class CUE4ParseViewModel
         await using var archive = new FStreamArchive(fileStream.Name, memoryStream);
 
         var paths = new Dictionary<string, int>();
-        while (archive.Position < archive.Length)
+
+        var magic = archive.Read<uint>();
+        if (magic != 0x504B4246)
         {
-            archive.Position += 29;
-            paths[archive.ReadString().ToLower()[1..]] = 0;
-            archive.Position += 4;
+            archive.Position -= 4;
+            while (archive.Position < archive.Length)
+            {
+                archive.Position += 29;
+                paths[archive.ReadString().ToLower()[1..]] = 0;
+                archive.Position += 4;
+            }
+        }
+        else
+        {
+            var version = archive.Read<EBackupVersion>();
+            var count = archive.Read<int>();
+            for (var i = 0; i < count; i++)
+            {
+                archive.Position += 9;
+                paths[archive.ReadString().ToLower()[1..]] = 0;
+            }
         }
 
         foreach (var (key, value) in Provider.Files)
@@ -163,4 +178,13 @@ public class CUE4ParseViewModel
         Log.Information("New Update Detected! New Build: {newVersion}", newManifest.Elements[0].BuildVersion);
         return newManifest;
     }
+}
+
+public enum EBackupVersion : byte
+{
+    BeforeVersionWasAdded = 0,
+    Initial,
+
+    LatestPlusOne,
+    Latest = LatestPlusOne - 1
 }

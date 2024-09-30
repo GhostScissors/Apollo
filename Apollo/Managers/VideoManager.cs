@@ -48,7 +48,7 @@ public static class VideoManager
 
 
             demuxer.Add($"file '{outputPath}'");
-            Log.Information("Exported {name} ({counter})", outputPath, $"{i}/{imageFiles.Length}");
+            Log.Information("Exported {name} ({counter})", outputPath, $"{i + 1}/{imageFiles.Length}");
         }
 
         demuxer.Sort(new NaturalStringComparer());
