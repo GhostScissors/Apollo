@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
 using Apollo.Enums;
 using Apollo.Service;
 using CUE4Parse.Compression;
@@ -15,6 +14,7 @@ using EpicManifestParser.Api;
 using GenericReader;
 using K4os.Compression.LZ4.Streams;
 using Serilog;
+using Spectre.Console;
 
 namespace Apollo.ViewModels;
 
@@ -29,14 +29,18 @@ public class CUE4ParseViewModel
         Entries = [];
     }
 
-    public async Task Initialize(EUpdateMode updateMode)
+    public async Task Initialize(EUpdateMode updateMode, string pakNumber, bool bOverrideMappings)
     {
         ManifestInfo? manifestInfo;
-        
+
         if (updateMode == EUpdateMode.WaitForUpdate)
+        {
             manifestInfo = await WatchForManifest().ConfigureAwait(false);
+        }
         else
+        {
             manifestInfo = await ApplicationService.ApiVM.EpicApi.GetManifestAsync().ConfigureAwait(false);
+        }
 
         Log.Information($"Downloading {manifestInfo?.Elements[0].BuildVersion}");
         var manifestOptions = new ManifestParseOptions
@@ -47,12 +51,12 @@ public class CUE4ParseViewModel
             ChunkBaseUrl = "http://epicgames-download1.akamaized.net/Builds/Fortnite/CloudDir/",
         };
 
-        var (manifest, build) = await manifestInfo!.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
+        var (manifest, _) = await manifestInfo!.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
         
         Parallel.ForEach(manifest.FileManifestList, fileManifest =>
         {
             if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" &&
-                fileManifest.FileName != "FortniteGame/Content/Paks/pakchunk10-WindowsClient.utoc")
+                fileManifest.FileName != $"FortniteGame/Content/Paks/pakchunk{pakNumber}-WindowsClient.utoc")
                 return;
 
             // https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
@@ -62,18 +66,35 @@ public class CUE4ParseViewModel
 
             Log.Information("Downloaded {fileName}", fileManifest.FileName);
         });
+
+        var aes = await ApplicationService.ApiVM.FortniteCentralApi.GetAesAsync().ConfigureAwait(false);
+        List<KeyValuePair<FGuid, FAesKey>> aesKeys = [ new(new FGuid(), new FAesKey(aes?.MainKey ?? "0x0000000000000000000000000000000000000000000000000000000000000000")) ];
+        aesKeys.AddRange(aes!.DynamicKeys.Select(dynamicKey => new KeyValuePair<FGuid, FAesKey>(new FGuid(dynamicKey.Guid), new FAesKey(dynamicKey.Key))));
         
-        await Provider.MountAsync().ConfigureAwait(false);
-        await LoadMappings().ConfigureAwait(false);
-        await LoadNewFiles().ConfigureAwait(false);
+        await Provider.SubmitKeysAsync(aesKeys);
+        await LoadMappings(bOverrideMappings).ConfigureAwait(false);
+
+        if (updateMode == EUpdateMode.PakFiles)
+        {
+            LoadPakFiles($"FortniteGame/Content/Paks/pakchunk{pakNumber}-WindowsClient.utoc");
+        }
+        else
+        {
+            await LoadNewFiles().ConfigureAwait(false);
+        }
     }
     
-    private async Task LoadMappings()
+    private async Task LoadMappings(bool bOverrideMappings = false)
     {
         var mappings = await ApplicationService.ApiVM.FortniteCentralApi.GetMappingsAsync().ConfigureAwait(false);
         string mappingsPath;
 
-        if (mappings?.Length <= 0)
+        if (bOverrideMappings)
+        {
+            mappingsPath = AnsiConsole.Prompt(new TextPrompt<string>("Please input the mappings path which you want to use!")
+                .Validate(f => File.Exists(f) ? ValidationResult.Success() : ValidationResult.Error("[red]Please enter a valid file path.[/]")));
+        }
+        else if (mappings?.Length <= 0 || mappings == null)
         {
             Log.Warning("Response from FortniteCentral was invalid. Trying to find saved mappings");
 
@@ -153,6 +174,22 @@ public class CUE4ParseViewModel
         
         stopwatch.Stop();
         Log.Information("Loaded {files} new files", Entries.Count);
+    }
+    
+    private void LoadPakFiles(string filter)
+    {
+        foreach (var asset in Provider.Files.Values)
+        {
+            if (asset is not VfsEntry entry || entry.Path.EndsWith(".uexp") || entry.Path.EndsWith(".ubulk") || entry.Path.EndsWith(".uptnl"))
+                continue;
+            
+            if (filter.Contains(entry.Vfs.Name))
+            {
+                Entries.Add(entry);
+            }
+        }
+        
+        Log.Information("Loaded {files} files for {pakName}", Entries.Count, filter);
     }
     
     private async Task<ManifestInfo?> WatchForManifest()

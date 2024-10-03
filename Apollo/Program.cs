@@ -1,12 +1,8 @@
 ﻿using System.Diagnostics;
 using Apollo.Enums;
 using Apollo.Export;
-using Apollo.Managers;
 using Apollo.Service;
-using Apollo.Utils;
-using CUE4Parse;
 using Serilog;
-using Serilog.Sinks.SystemConsole.Themes;
 using Spectre.Console;
 
 namespace Apollo;
@@ -23,12 +19,25 @@ public class Program
             .MoreChoicesText("[grey](Move up and down to see more options)[/]")
             .AddChoices(Enum.GetValues<EUpdateMode>()));
 #else
-        var updateMode = EUpdateMode.GetNewFiles;
+        var updateMode = EUpdateMode.PakFiles;
 #endif
+        var pakNumber = "10";
+        
+        if (updateMode == EUpdateMode.PakFiles)
+            pakNumber = AnsiConsole.Prompt(new TextPrompt<string>("Please input the pak number you want to load:")
+                .PromptStyle("green")
+                .Validate(f => f.Length == 4 ? ValidationResult.Success() : ValidationResult.Error("[red]Please enter a valid 4-digit pak number.[/]")));
+
+        var bOverrideMappings = AnsiConsole.Prompt(new TextPrompt<bool>("Do you want to override mappings path?")
+            .PromptStyle("green")
+            .DefaultValue(false)
+            .AddChoice(true)
+            .AddChoice(false));
+        
         var stopwatch = Stopwatch.StartNew();
         
         await ApplicationService.Initialize().ConfigureAwait(false);
-        await ApplicationService.CUE4ParseVM.Initialize(updateMode).ConfigureAwait(false);
+        await ApplicationService.CUE4ParseVM.Initialize(updateMode, pakNumber, bOverrideMappings).ConfigureAwait(false);
         await Exporter.VoiceLines.Export();
         await DiscordService.InitializeAsync().ConfigureAwait(false);
 

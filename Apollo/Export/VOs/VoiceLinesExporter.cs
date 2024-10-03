@@ -27,6 +27,7 @@ public partial class VoiceLinesExporter : IExporter
     public async Task Export()
     {
         SoundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => MyRegex().IsMatch(x.Path)).ToArray();
+        Log.Information("Found {number} FortSoundSequences", SoundSequences.Length);
         foreach (var soundSequence in SoundSequences)
         {
             var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
