@@ -61,7 +61,7 @@ public class CUE4ParseViewModel
 
             // https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
             Provider.RegisterVfs(fileManifest.FileName, [fileManifest.GetStream()],
-                it => new FStreamArchive(it, manifest.FileManifestList.First(x => x.FileName.Equals(it)).GetStream(),
+                it => new FRandomAccessStreamArchive(it, manifest.FileManifestList.First(x => x.FileName.Equals(it)).GetStream(),
                     Provider.Versions));
 
             Log.Information("Downloaded {fileName}", fileManifest.FileName);
