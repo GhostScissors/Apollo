@@ -19,9 +19,9 @@ public class Program
             .MoreChoicesText("[grey](Move up and down to see more options)[/]")
             .AddChoices(Enum.GetValues<EUpdateMode>()));
 #else
-        var updateMode = EUpdateMode.PakFiles;
+        var updateMode = EUpdateMode.GetNewFiles;
 #endif
-        var pakNumber = "10";
+        var pakNumber = "30";
         
         if (updateMode == EUpdateMode.PakFiles)
             pakNumber = AnsiConsole.Prompt(new TextPrompt<string>("Please input the pak number you want to load:")
