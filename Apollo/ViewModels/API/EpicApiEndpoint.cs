@@ -10,29 +10,48 @@ public class EpicApiEndpoint : AbstractApiProvider
 {
     private const string AUTH_URL = "https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token";
     private const string MANFEST_URL = "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/public/assets/v2/platform/Windows/namespace/fn/catalogItem/4fe75bbc5a674f4f9b356b5c90567da5/app/Fortnite/label/Live";
+    private const string VERIFY_URL = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/verify";
     private const string BASIC_TOKEN = "basic MzQ0NmNkNzI2OTRjNGE0NDg1ZDgxYjc3YWRiYjIxNDE6OTIwOWQ0YTVlMjVhNDU3ZmI5YjA3NDg5ZDMxM2I0MWE=";
     
-    public EpicApiEndpoint(RestClient client) : base(client) { }
+    private string AuthToken { get; set; }
+
+    public EpicApiEndpoint(RestClient client) : base(client)
+    {
+        AuthToken = string.Empty;
+    }
     
-    private async Task<AuthResponse?> CreateAuthAsync()
+    public async Task<ManifestInfo> GetManifestAsync()
+    {
+        await VerifyTokenAsync().ConfigureAwait(false);
+        
+        var request = new FRestRequest(MANFEST_URL);
+        request.AddHeader("Authorization", $"bearer {AuthToken}");
+        var response = await _client.ExecuteAsync(request).ConfigureAwait(false);
+        Log.Information("[{Method}] [{Status}({StatusCode})] '{Resource}'", request.Method, response.StatusDescription, (int) response.StatusCode, request.Resource);
+        return ManifestInfo.Deserialize(response.RawBytes) ?? throw new InvalidOperationException("Response Data for manifest was null");
+    }
+    
+    private async Task<string> CreateAuthAsync()
     {
         var request = new FRestRequest(AUTH_URL, Method.Post);
         request.AddHeader("Authorization", BASIC_TOKEN);
         request.AddParameter("grant_type", "client_credentials");
         var response = await _client.ExecuteAsync<AuthResponse>(request).ConfigureAwait(false);
         Log.Information("[{Method}] [{Status}({StatusCode})] '{Resource}'", request.Method, response.StatusDescription, (int) response.StatusCode, request.Resource);
-        return response.Data;
+        return response.Data != null ? response.Data.AccessToken : string.Empty;
     }
-    
 
-    public async Task<ManifestInfo?> GetManifestAsync()
+    private async Task VerifyTokenAsync()
     {
-        var auth = await CreateAuthAsync().ConfigureAwait(false);
-        
-        var request = new FRestRequest(MANFEST_URL);
-        request.AddHeader("Authorization", $"bearer {auth?.AccessToken}");
+        if (await IsTokenExpiredAsync().ConfigureAwait(false))
+            AuthToken = await CreateAuthAsync().ConfigureAwait(false);
+    }
+
+    public async Task<bool> IsTokenExpiredAsync()
+    {
+        var request = new FRestRequest(VERIFY_URL);
+        request.AddHeader("Authorization", $"bearer {AuthToken}");
         var response = await _client.ExecuteAsync(request).ConfigureAwait(false);
-        Log.Information("[{Method}] [{Status}({StatusCode})] '{Resource}'", request.Method, response.StatusDescription, (int) response.StatusCode, request.Resource);
-        return ManifestInfo.Deserialize(response.RawBytes);
+        return !response.IsSuccessful;
     }
 }

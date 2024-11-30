@@ -12,19 +12,19 @@ public class FortniteCentralApiEndpoint : AbstractApiProvider
 
     public FortniteCentralApiEndpoint(RestClient client)  : base(client) { }
 
-    public async Task<MappingsResponse[]?> GetMappingsAsync()
+    public async Task<MappingsResponse[]> GetMappingsAsync()
     {
         var request = new FRestRequest(MAPPINGS_URL);
         var response = await _client.ExecuteAsync<MappingsResponse[]>(request);
         Log.Information("[{Method}] [{Status}({StatusCode})] '{Resource}'", request.Method, response.StatusDescription, (int) response.StatusCode, request.Resource);
-        return response.Data;
+        return response.Data ?? throw new InvalidOperationException("Response for mappings was null");
     }
     
-    public async Task<AesResponse?> GetAesAsync()
+    public async Task<AesResponse> GetAesAsync()
     {
         var request = new FRestRequest(AES_URL);
         var response = await _client.ExecuteAsync<AesResponse>(request);
         Log.Information("[{Method}] [{Status}({StatusCode})] '{Resource}'", request.Method, response.StatusDescription, (int) response.StatusCode, request.Resource);
-        return response.Data;
+        return response.Data ?? throw new InvalidOperationException("Response for aes keys was null");
     }
 }

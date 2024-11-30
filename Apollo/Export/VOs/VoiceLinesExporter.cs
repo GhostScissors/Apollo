@@ -24,13 +24,18 @@ public partial class VoiceLinesExporter : IExporter
         SoundSequences = [];
     }
     
-    public async Task Export()
+    public async Task ExportAsync()
     {
-        SoundSequences = ApplicationService.CUE4ParseVM.Entries.Where(x => MyRegex().IsMatch(x.Path)).ToArray();
+        SoundSequences = ApplicationService.CUE4Parse.Entries.Where(x => MyRegex().IsMatch(x.Path)).ToArray();
         Log.Information("Found {number} FortSoundSequences", SoundSequences.Length);
         foreach (var soundSequence in SoundSequences)
         {
-            var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
+            var uObject = await ProviderUtils.LoadObject(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension).ConfigureAwait(false);
+            if (uObject.ExportType != "FortSoundSequence")
+                continue;
+            
+            var soundSequenceObject = (UFortSoundSequence) uObject;
+            
             for (var i = 0; i < soundSequenceObject.SoundSequenceData.Length; i++)
             {
                 var soundSequenceData = soundSequenceObject.SoundSequenceData[i];

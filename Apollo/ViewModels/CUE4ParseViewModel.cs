@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System.Text.RegularExpressions;
 using Apollo.Enums;
 using Apollo.Service;
 using CUE4Parse.Compression;
@@ -11,90 +11,72 @@ using CUE4Parse.UE4.Versions;
 using CUE4Parse.UE4.VirtualFileSystem;
 using EpicManifestParser;
 using EpicManifestParser.Api;
-using GenericReader;
-using K4os.Compression.LZ4.Streams;
 using Serilog;
-using Spectre.Console;
 
 namespace Apollo.ViewModels;
 
 public class CUE4ParseViewModel
 {
-    public StreamedFileProvider Provider { get; }
-    public List<VfsEntry> Entries { get; }
+    public readonly StreamedFileProvider Provider;
+    public readonly List<VfsEntry> Entries;
+    private ManifestInfo _manifestInfo;
+    
+    private readonly Regex _fortniteLive = new(@"^FortniteGame[/\\]Content[/\\]Paks[/\\]", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public CUE4ParseViewModel()
     {
         Provider = new StreamedFileProvider("FortniteGame", true, new VersionContainer(EGame.GAME_UE5_5));
         Entries = [];
+        _manifestInfo = new ManifestInfo
+        {
+            Elements = []
+        };
     }
 
-    public async Task Initialize(EUpdateMode updateMode, string pakNumber, bool bOverrideMappings)
+    public async Task InitializeAsync(EUpdateMode updateMode)
     {
-        ManifestInfo? manifestInfo;
+        Log.Information("TEST");
+        
+        await GetManifestAsync(updateMode).ConfigureAwait(false);
 
-        if (updateMode == EUpdateMode.WaitForUpdate)
-        {
-            manifestInfo = await WatchForManifest().ConfigureAwait(false);
-        }
-        else
-        {
-            manifestInfo = await ApplicationService.ApiVM.EpicApi.GetManifestAsync().ConfigureAwait(false);
-        }
-
-        Log.Information($"Downloading {manifestInfo?.Elements[0].BuildVersion}");
+        Log.Information("Downloading {ver}", _manifestInfo.Elements[0].BuildVersion);
         var manifestOptions = new ManifestParseOptions
         {
             ManifestCacheDirectory = ApplicationService.ManifestCacheDirectory,
             ChunkCacheDirectory = ApplicationService.ChunkCacheDirectory,
-            Zlibng = ZlibHelper.Instance,
+            Decompressor = ManifestZlibStreamDecompressor.Decompress,
+            DecompressorState = ZlibHelper.Instance,
             ChunkBaseUrl = "http://epicgames-download1.akamaized.net/Builds/Fortnite/CloudDir/",
         };
 
-        var (manifest, _) = await manifestInfo!.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
+        var (manifest, _) = await _manifestInfo.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
         
-        Parallel.ForEach(manifest.FileManifestList, fileManifest =>
+        Parallel.ForEach(manifest.Files, fileManifest =>
         {
-            if (fileManifest.FileName != "FortniteGame/Content/Paks/global.utoc" &&
-                fileManifest.FileName != $"FortniteGame/Content/Paks/pakchunk{pakNumber}-WindowsClient.utoc")
+            if (!_fortniteLive.IsMatch(fileManifest.FileName))
                 return;
 
-            // https://github.com/4sval/FModel/blob/dev/FModel/ViewModels/CUE4ParseViewModel.cs#L237C33-L238C169
             Provider.RegisterVfs(fileManifest.FileName, [fileManifest.GetStream()],
-                it => new FRandomAccessStreamArchive(it, manifest.FileManifestList.First(x => x.FileName.Equals(it)).GetStream(),
+                it => new FRandomAccessStreamArchive(it, manifest.Files.First(x => x.FileName.Equals(it)).GetStream(),
                     Provider.Versions));
 
             Log.Information("Downloaded {fileName}", fileManifest.FileName);
         });
-
-        var aes = await ApplicationService.ApiVM.FortniteCentralApi.GetAesAsync().ConfigureAwait(false);
-        List<KeyValuePair<FGuid, FAesKey>> aesKeys = [ new(new FGuid(), new FAesKey(aes?.MainKey ?? "0x0000000000000000000000000000000000000000000000000000000000000000")) ];
-        aesKeys.AddRange(aes!.DynamicKeys.Select(dynamicKey => new KeyValuePair<FGuid, FAesKey>(new FGuid(dynamicKey.Guid), new FAesKey(dynamicKey.Key))));
         
-        await Provider.SubmitKeysAsync(aesKeys);
-        await LoadMappings(bOverrideMappings).ConfigureAwait(false);
+        Provider.Initialize();
+        await Provider.MountAsync();
+        await Provider.SubmitKeyAsync(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000"));
 
-        if (updateMode == EUpdateMode.PakFiles)
-        {
-            LoadPakFiles($"FortniteGame/Content/Paks/pakchunk{pakNumber}-WindowsClient.utoc");
-        }
-        else
-        {
-            await LoadNewFiles().ConfigureAwait(false);
-        }
+        await LoadMappingsAsync().ConfigureAwait(false);
+        await ApplicationService.Backup.LoadBackup(Entries).ConfigureAwait(false);
     }
-    
-    private async Task LoadMappings(bool bOverrideMappings = false)
-    {
-        var mappings = await ApplicationService.ApiVM.FortniteCentralApi.GetMappingsAsync().ConfigureAwait(false);
-        string mappingsPath;
 
-        if (bOverrideMappings)
-        {
-            mappingsPath = AnsiConsole.Prompt(new TextPrompt<string>("Please input the mappings path which you want to use!")
-                .Validate(f => File.Exists(f) ? ValidationResult.Success() : ValidationResult.Error("[red]Please enter a valid file path.[/]")));
-        }
-        else if (mappings?.Length <= 0 || mappings == null)
+    private async Task LoadMappingsAsync()
+    {
+        var mappings = await ApplicationService.Api.FortniteCentralApi.GetMappingsAsync().ConfigureAwait(false);
+        string mappingsPath;
+        
+        if (mappings.Length <= 0)
         {
             Log.Warning("Response from FortniteCentral was invalid. Trying to find saved mappings");
 
@@ -111,7 +93,7 @@ public class CUE4ParseViewModel
         {
             Log.Information("Downloading {name}", mappings[0].FileName);
             mappingsPath = Path.Combine(ApplicationService.DataDirectory, mappings[0].FileName);
-            await ApplicationService.ApiVM.DownloadFileAsync(mappings[0].Url, mappingsPath);
+            await ApplicationService.Api.DownloadFileAsync(mappings[0].Url, mappingsPath);
             Log.Information("Downloaded {name} at {path}", mappings[0].FileName, mappingsPath);
         }
 
@@ -119,109 +101,31 @@ public class CUE4ParseViewModel
         Log.Information("Mappings pulled from {path}", mappingsPath);
     }
     
-    private async Task LoadNewFiles()
+    private async Task GetManifestAsync(EUpdateMode updateMode)
     {
-        await ApplicationService.BackupVM.DownloadBackup();
-        var backupPath = ApplicationService.BackupVM.GetBackup();
-        var stopwatch = Stopwatch.StartNew();
+        var initialManifest = await ApplicationService.Api.EpicApi.GetManifestAsync();
+        var initialVersion = initialManifest.Elements[0].BuildVersion;
 
-        await using var fileStream = new FileStream(backupPath, FileMode.Open);
-        await using var memoryStream = new MemoryStream();
-        using var reader = new GenericStreamReader(fileStream);
-
-        if (reader.Read<uint>() == 0x184D2204u)
+        if (updateMode == EUpdateMode.GetNewFiles)
         {
-            reader.Position -= 4;
-            await using var compressionMethod = LZ4Stream.Decode(fileStream);
-            await compressionMethod.CopyToAsync(memoryStream).ConfigureAwait(false);
+            _manifestInfo = initialManifest;
+            return;
         }
-        else await fileStream.CopyToAsync(memoryStream).ConfigureAwait(false);
-
-        memoryStream.Position = 0;
-        await using var archive = new FStreamArchive(fileStream.Name, memoryStream);
-
-        var paths = new Dictionary<string, int>();
-
-        var magic = archive.Read<uint>();
-        if (magic != 0x504B4246)
-        {
-            archive.Position -= 4;
-            while (archive.Position < archive.Length)
-            {
-                archive.Position += 29;
-                paths[archive.ReadString().ToLower()[1..]] = 0;
-                archive.Position += 4;
-            }
-        }
-        else
-        {
-            var version = archive.Read<EBackupVersion>();
-            var count = archive.Read<int>();
-            for (var i = 0; i < count; i++)
-            {
-                archive.Position += 9;
-                paths[archive.ReadString().ToLower()[1..]] = 0;
-            }
-        }
-
-        foreach (var (key, value) in Provider.Files)
-        {
-            if (value is not VfsEntry entry || paths.ContainsKey(key) || entry.Path.EndsWith(".uexp") ||
-                entry.Path.EndsWith(".ubulk") || entry.Path.EndsWith(".uptnl")) continue;
-
-            Entries.Add(entry);
-        }
-        
-        stopwatch.Stop();
-        Log.Information("Loaded {files} new files", Entries.Count);
-    }
-    
-    private void LoadPakFiles(string filter)
-    {
-        foreach (var asset in Provider.Files.Values)
-        {
-            if (asset is not VfsEntry entry || entry.Path.EndsWith(".uexp") || entry.Path.EndsWith(".ubulk") || entry.Path.EndsWith(".uptnl"))
-                continue;
-            
-            if (filter.Contains(entry.Vfs.Name))
-            {
-                Entries.Add(entry);
-            }
-        }
-        
-        Log.Information("Loaded {files} files for {pakName}", Entries.Count, filter);
-    }
-    
-    private async Task<ManifestInfo?> WatchForManifest()
-    {
-        ManifestInfo newManifest;
-
-        var initialManifest = await ApplicationService.ApiVM.EpicApi.GetManifestAsync();
-        var initialVersion = initialManifest?.Elements[0].BuildVersion;
 
         while (true)
         {
-            await Task.Delay(5000);
+            await Task.Delay(2500);
 
             Log.Information("Checking for an update. Current Build: {currentVersion}", initialVersion);
 
-            newManifest = (await ApplicationService.ApiVM.EpicApi.GetManifestAsync().ConfigureAwait(false))!;
+            var newManifest = await ApplicationService.Api.EpicApi.GetManifestAsync().ConfigureAwait(false);
             var newVersion = newManifest.Elements[0].BuildVersion;
 
-            if (initialVersion != newVersion)
-                break;
+            if (initialVersion == newVersion) 
+                continue;
+            
+            Log.Information("New Update Detected! New Build: {newVersion}", newManifest.Elements[0].BuildVersion);
+            _manifestInfo = newManifest;
         }
-
-        Log.Information("New Update Detected! New Build: {newVersion}", newManifest.Elements[0].BuildVersion);
-        return newManifest;
     }
-}
-
-public enum EBackupVersion : byte
-{
-    BeforeVersionWasAdded = 0,
-    Initial,
-
-    LatestPlusOne,
-    Latest = LatestPlusOne - 1
 }

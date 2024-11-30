@@ -11,11 +11,11 @@ public class FModelApiEndpoint : AbstractApiProvider
 
     public FModelApiEndpoint(RestClient client) : base(client) { }
 
-    public async Task<BackupResponse[]?> GetBackupsAsync()
+    public async Task<BackupResponse[]> GetBackupsAsync()
     {
         var request = new FRestRequest(BACKUPS_URL);
         var response = await _client.ExecuteAsync<BackupResponse[]>(request).ConfigureAwait(false);
         Log.Information("[{Method}] [{Status}({StatusCode})] '{Resource}'", request.Method, response.StatusDescription, (int) response.StatusCode, request.Resource);
-        return response.Data;
+        return response.Data ?? throw new InvalidOperationException("response data for backups was null");
     }
 }

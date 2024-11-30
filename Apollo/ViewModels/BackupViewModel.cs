@@ -1,23 +1,35 @@
-﻿using Apollo.Service;
+﻿using Apollo.ViewModels.Command;
+using Apollo.Service;
+using CUE4Parse.UE4.VirtualFileSystem;
 using Serilog;
 
 namespace Apollo.ViewModels;
 
 public class BackupViewModel
 {
-    public async Task DownloadBackup()
+    private string BackupPath { get; set; }
+    private LoadCommand LoadCommand { get; set; }
+
+    public BackupViewModel()
     {
-        // Downloads the latest backup
-        var backups = await ApplicationService.ApiVM.FModelApi.GetBackupsAsync();
-        var backupPath = Path.Combine(ApplicationService.DataDirectory, backups![4].FileName);
-        Log.Information("Downloading {name}", backups[4].FileName);
-        await ApplicationService.ApiVM.DownloadFileAsync(backups[4].DownloadUrl, Path.Combine(ApplicationService.DataDirectory, backups[4].FileName));
-        Log.Information("Downloaded {name} at {path}", backups[4].FileName, backupPath);
+        BackupPath = string.Empty;
+        LoadCommand = new LoadCommand();
+    }
+    
+    private async Task DownloadBackupAsync()
+    {
+        var backups = await ApplicationService.Api.FModelApi.GetBackupsAsync();
+        var backupPath = Path.Combine(ApplicationService.DataDirectory, backups[^1].FileName);
+        Log.Information("Downloading {name}", backups[^1].FileName);
+        await ApplicationService.Api.DownloadFileAsync(backups[^1].DownloadUrl, backupPath);
+        Log.Information("Downloaded {name} at {path}", backups[^1].FileName, backupPath);
+        
+        BackupPath = backupPath;
     }
 
-    public string GetBackup()
+    public async Task LoadBackup(List<VfsEntry> entries)
     {
-        var backupPath = new DirectoryInfo(ApplicationService.DataDirectory).GetFiles("*.fbkp");
-        return backupPath.OrderByDescending(f => f.LastWriteTimeUtc).First().FullName;
+        await DownloadBackupAsync().ConfigureAwait(false);
+        await LoadCommand.LoadNewFiles(BackupPath, entries);
     }
 }

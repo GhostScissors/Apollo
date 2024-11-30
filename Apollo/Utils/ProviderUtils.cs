@@ -4,11 +4,16 @@ using CUE4Parse.UE4.Objects.UObject;
 
 namespace Apollo.Utils;
 
-public class ProviderUtils
+public static class ProviderUtils
 {
-    public static T LoadObject<T>(string packagePath) where T : UObject
+    public static async Task<UObject> LoadObject(string packagePath)
     {
-        return ApplicationService.CUE4ParseVM.Provider.LoadObject<T>(packagePath);
+        return await ApplicationService.CUE4Parse.Provider.LoadObjectAsync(packagePath).ConfigureAwait(false);
+    }
+    
+    public static async Task<IEnumerable<UObject>> LoadAllObjects(string packagePath)
+    {
+        return await ApplicationService.CUE4Parse.Provider.LoadAllObjectsAsync(packagePath).ConfigureAwait(false);
     }
 
     public static bool TryGetPackageIndexExport<T>(FPackageIndex? packageIndex, out T export) where T : UObject

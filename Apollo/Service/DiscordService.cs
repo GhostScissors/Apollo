@@ -7,7 +7,7 @@ namespace Apollo.Service;
 
 public static class DiscordService
 {
-    private const string Token = "MTI3NzI5Njc5MTU2OTgyOTk1OQ.Gf2hml.u9Yc8y-7FDPiXveefJl63Y9Y4gXnm38VAE2yiM"; // Asval please don't do something shady with this
+    private const string Token = "MTI3NzI5Njc5MTU2OTgyOTk1OQ.GJS3ma.Yg2sZNw7EYRp7QDdx0gkR-RHWSRXAa_YrbjrCc";
     private const ulong ChannelId = 1277295260111994912;
 
     private static readonly DiscordSocketClient Client;
@@ -23,11 +23,9 @@ public static class DiscordService
         
         await Client.LoginAsync(TokenType.Bot, Token);
         await Client.StartAsync();
-
-        await SendVideoAsync();
     }
 
-    private static async Task SendVideoAsync()
+    public static async Task SendVideoAsync()
     {
         var channel = await Client.GetChannelAsync(ChannelId) as IMessageChannel;
         var videoPath = Path.Combine(ApplicationService.ExportDirectory, "output.mp4");

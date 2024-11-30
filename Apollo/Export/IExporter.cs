@@ -2,5 +2,5 @@
 
 public interface IExporter
 {
-    public Task Export();
+    public Task ExportAsync();
 }
