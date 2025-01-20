@@ -38,8 +38,7 @@ public static class ApplicationService
         }
         
         var exportedFiles = Directory.GetFiles(ExportDirectory, "*.*", SearchOption.AllDirectories);
-        foreach (var exportedFile in exportedFiles)
-            File.Delete(exportedFile);
+        Parallel.ForEach(exportedFiles, File.Delete);
 
         await InitializeDependenciesAsync().ConfigureAwait(false);
     }
@@ -59,6 +58,8 @@ public static class ApplicationService
             await using var resourceStream = assembly.GetManifestResourceStream(resourceName);
             if (resourceStream == null)
                 throw new NullReferenceException("Resource not found");
+            
+            Log.Information("Copied {0} to directory {1}", fileName, outputPath);
 
             await using var fileStream = new FileStream(outputPath, FileMode.Create);
             await resourceStream.CopyToAsync(fileStream).ConfigureAwait(false);

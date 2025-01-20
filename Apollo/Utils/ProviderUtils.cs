@@ -11,6 +11,11 @@ public static class ProviderUtils
         return await ApplicationService.CUE4Parse.Provider.LoadObjectAsync(packagePath).ConfigureAwait(false);
     }
     
+    public static async Task<T> LoadObject<T>(string packagePath) where T : UObject
+    {
+        return await ApplicationService.CUE4Parse.Provider.LoadObjectAsync<T>(packagePath).ConfigureAwait(false);
+    }
+    
     public static async Task<IEnumerable<UObject>> LoadAllObjects(string packagePath)
     {
         return await ApplicationService.CUE4Parse.Provider.LoadAllObjectsAsync(packagePath).ConfigureAwait(false);

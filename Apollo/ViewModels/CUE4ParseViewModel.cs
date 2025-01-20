@@ -35,8 +35,6 @@ public class CUE4ParseViewModel
 
     public async Task InitializeAsync(EUpdateMode updateMode)
     {
-        Log.Information("TEST");
-        
         await GetManifestAsync(updateMode).ConfigureAwait(false);
 
         Log.Information("Downloading {ver}", _manifestInfo.Elements[0].BuildVersion);
@@ -65,10 +63,9 @@ public class CUE4ParseViewModel
         
         Provider.Initialize();
         await Provider.MountAsync();
-        await Provider.SubmitKeyAsync(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000"));
-
+        
         await LoadMappingsAsync().ConfigureAwait(false);
-        await ApplicationService.Backup.LoadBackup(Entries).ConfigureAwait(false);
+        await ApplicationService.Backup.LoadNewFilesAsync(Entries).ConfigureAwait(false);
     }
 
     private async Task LoadMappingsAsync()
@@ -118,14 +115,13 @@ public class CUE4ParseViewModel
 
             Log.Information("Checking for an update. Current Build: {currentVersion}", initialVersion);
 
-            var newManifest = await ApplicationService.Api.EpicApi.GetManifestAsync().ConfigureAwait(false);
-            var newVersion = newManifest.Elements[0].BuildVersion;
+            _manifestInfo = await ApplicationService.Api.EpicApi.GetManifestAsync().ConfigureAwait(false);
+            var newVersion = _manifestInfo.Elements[0].BuildVersion;
 
             if (initialVersion == newVersion) 
                 continue;
             
-            Log.Information("New Update Detected! New Build: {newVersion}", newManifest.Elements[0].BuildVersion);
-            _manifestInfo = newManifest;
+            Log.Information("New Update Detected! New Build: {newVersion}", _manifestInfo.Elements[0].BuildVersion);
         }
     }
 }

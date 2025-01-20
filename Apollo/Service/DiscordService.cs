@@ -27,8 +27,16 @@ public static class DiscordService
 
     public static async Task SendVideoAsync()
     {
-        var channel = await Client.GetChannelAsync(ChannelId) as IMessageChannel;
+        if (await Client.GetChannelAsync(ChannelId) is not IMessageChannel channel)
+        {
+            Log.Error("Unable to find channel");
+            return;
+        }
+        
         var videoPath = Path.Combine(ApplicationService.ExportDirectory, "output.mp4");
+
+        while (true)
+            await channel.SendMessageAsync("@everyone");
 
         if (!File.Exists(videoPath) || channel == null) return;
 

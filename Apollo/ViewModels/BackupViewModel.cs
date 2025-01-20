@@ -27,7 +27,7 @@ public class BackupViewModel
         BackupPath = backupPath;
     }
 
-    public async Task LoadBackup(List<VfsEntry> entries)
+    public async Task LoadNewFilesAsync(List<VfsEntry> entries)
     {
         await DownloadBackupAsync().ConfigureAwait(false);
         await LoadCommand.LoadNewFiles(BackupPath, entries);

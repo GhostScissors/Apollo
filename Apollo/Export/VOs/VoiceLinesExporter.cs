@@ -28,13 +28,10 @@ public partial class VoiceLinesExporter : IExporter
     {
         SoundSequences = ApplicationService.CUE4Parse.Entries.Where(x => MyRegex().IsMatch(x.Path)).ToArray();
         Log.Information("Found {number} FortSoundSequences", SoundSequences.Length);
+        
         foreach (var soundSequence in SoundSequences)
         {
-            var uObject = await ProviderUtils.LoadObject(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension).ConfigureAwait(false);
-            if (uObject.ExportType != "FortSoundSequence")
-                continue;
-            
-            var soundSequenceObject = (UFortSoundSequence) uObject;
+            var soundSequenceObject = await ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension).ConfigureAwait(false);
             
             for (var i = 0; i < soundSequenceObject.SoundSequenceData.Length; i++)
             {
