@@ -24,7 +24,7 @@ public static class Program
 #endif
         
         Log.Information("UpdateMode: {0}'", updateMode);
-            
+        
         await ApplicationService.CUE4Parse.InitializeAsync(updateMode).ConfigureAwait(false);
         await Exporter.VoiceLines.ExportAsync().ConfigureAwait(false);
         await DiscordService.SendVideoAsync();

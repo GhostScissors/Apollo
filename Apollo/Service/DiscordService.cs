@@ -7,7 +7,7 @@ namespace Apollo.Service;
 
 public static class DiscordService
 {
-    private const string Token = "MTI3NzI5Njc5MTU2OTgyOTk1OQ.GJS3ma.Yg2sZNw7EYRp7QDdx0gkR-RHWSRXAa_YrbjrCc";
+    private const string Token = "MTI3NzI5Njc5MTU2OTgyOTk1OQ.GzS__5.QD6mgPNpIpkl1vL-zCZgRZ9BgnxTnbQD3DjGK8";
     private const ulong ChannelId = 1277295260111994912;
 
     private static readonly DiscordSocketClient Client;
@@ -35,11 +35,7 @@ public static class DiscordService
         
         var videoPath = Path.Combine(ApplicationService.ExportDirectory, "output.mp4");
 
-        while (true)
-            await channel.SendMessageAsync("@everyone");
-
         if (!File.Exists(videoPath) || channel == null) return;
-
         await channel.SendFileAsync(videoPath, "@everyone");
     }
     
