@@ -47,11 +47,14 @@ public class CUE4ParseViewModel
             ChunkBaseUrl = "http://epicgames-download1.akamaized.net/Builds/Fortnite/CloudDir/",
         };
 
-        var (manifest, _) = await _manifestInfo.DownloadAndParseAsync(manifestOptions).ConfigureAwait(false);
+        var (manifest, _) = await _manifestInfo.DownloadAndParseAsync(manifestOptions, elementManifestPredicate: static x => x.Uri.Host != "cloudflare.epicgamescdn.com").ConfigureAwait(false);
         
         Parallel.ForEach(manifest.Files, fileManifest =>
         {
             if (!_fortniteLive.IsMatch(fileManifest.FileName))
+                return;
+
+            if (fileManifest.FileName.EndsWith(".sig") || fileManifest.FileName.EndsWith(".ucas"))
                 return;
 
             Provider.RegisterVfs(fileManifest.FileName, [fileManifest.GetStream()],
@@ -122,6 +125,7 @@ public class CUE4ParseViewModel
                 continue;
             
             Log.Information("New Update Detected! New Build: {newVersion}", _manifestInfo.Elements[0].BuildVersion);
+            break;
         }
     }
 }

@@ -2,6 +2,7 @@
 using Apollo.Export;
 using Apollo.Service;
 using Serilog;
+using Spectre.Console;
 
 namespace Apollo;
 

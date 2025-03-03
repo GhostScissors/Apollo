@@ -27,12 +27,6 @@ public static class VideoManager
             Log.Warning("The number of audio files do not match with the number of image files");
 
         Log.Information("Degree of Parallelism: {degree}", degreeOfParallelism);
-        
-        var counter = 1;
-        Parallel.For(0, imageFiles.Length, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, i =>
-        {
-            Interlocked.Increment(ref counter);
-        });
 
         for (var i = 0; i < imageFiles.Length; i++)
         {

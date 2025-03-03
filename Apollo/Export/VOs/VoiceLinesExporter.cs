@@ -28,10 +28,10 @@ public partial class VoiceLinesExporter : IExporter
     {
         SoundSequences = ApplicationService.CUE4Parse.Entries.Where(x => MyRegex().IsMatch(x.Path)).ToArray();
         Log.Information("Found {number} FortSoundSequences", SoundSequences.Length);
-        
-        foreach (var soundSequence in SoundSequences)
+
+        Parallel.ForEach(SoundSequences, soundSequence =>
         {
-            var soundSequenceObject = await ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension).ConfigureAwait(false);
+            var soundSequenceObject = ProviderUtils.LoadObject<UFortSoundSequence>(soundSequence.PathWithoutExtension + "." + soundSequence.NameWithoutExtension);
             
             for (var i = 0; i < soundSequenceObject.SoundSequenceData.Length; i++)
             {
@@ -55,14 +55,14 @@ public partial class VoiceLinesExporter : IExporter
                 var path = Path.Combine(ApplicationService.AudioFilesDirectory, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}.{audioFormat.ToLower()}");
                 Directory.CreateDirectory(path.SubstringBeforeLast("\\"));
 
-                await File.WriteAllBytesAsync(path, data).ConfigureAwait(false);
+                File.WriteAllBytes(path, data);
                 Log.Information("Exported {0} at '{1}'", voiceLines.Name, path);
 
                 ImageService.MakeImage(subtitles, soundSequence.NameWithoutExtension, $"{i}-{voiceLines.Name}");
             }
-        }
+        });
 
-        DecodeBinkaToWav();
+        DecodeRadaToWav();
         VideoManager.MakeFinalVideo(Environment.ProcessorCount / 4);
     }
 
@@ -81,31 +81,31 @@ public partial class VoiceLinesExporter : IExporter
         return null;
     }
     
-    private static void DecodeBinkaToWav()
+    private static void DecodeRadaToWav()
     {
-        var binkaFiles = Directory.GetFiles(ApplicationService.AudioFilesDirectory, "*.binka", SearchOption.AllDirectories);
+        var radaFiles = Directory.GetFiles(ApplicationService.AudioFilesDirectory, "*.rada", SearchOption.AllDirectories);
         
-        var binkadecPath = Path.Combine(ApplicationService.DataDirectory, "binkadec.exe");
-        if (!File.Exists(binkadecPath))
+        var radadecPath = Path.Combine(ApplicationService.DataDirectory, "radadec.exe");
+        if (!File.Exists(radadecPath))
         {
-            Log.Error("Binka Decoder doesn't exist in .data folder");
+            Log.Error("RADA Decoder doesn't exist in .data folder");
             return;
         }
 
-        foreach (var binkaFile in binkaFiles)
+        foreach (var radaFile in radaFiles)
         {
-            var wavFilePath = Path.ChangeExtension(Path.Combine(ApplicationService.AudioFilesDirectory, binkaFile), "wav");
-            var binkadecProcess = Process.Start(new ProcessStartInfo()
+            var wavFilePath = Path.ChangeExtension(Path.Combine(ApplicationService.AudioFilesDirectory, radaFile), "wav");
+            var radaDecProcess = Process.Start(new ProcessStartInfo()
             {
-                FileName = binkadecPath,
-                Arguments = $"-i \"{binkaFile}\" -o \"{wavFilePath}\"",
+                FileName = radadecPath,
+                Arguments = $"-i \"{radaFile}\" -o \"{wavFilePath}\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
             });
-            binkadecProcess?.WaitForExit(5000);
+            radaDecProcess?.WaitForExit(5000);
             
-            File.Delete(binkaFile);
-            Log.Information("Successfully converted '{file1}' to .wav", binkaFile);
+            File.Delete(radaFile);
+            Log.Information("Successfully converted '{file1}' to .wav", radaFile);
         }
     }
 

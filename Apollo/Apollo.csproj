@@ -21,6 +21,7 @@
       <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
       <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
       <PackageReference Include="SkiaSharp" Version="2.88.9" />
+      <PackageReference Include="Spectre.Console" Version="0.49.2-preview.0.76" />
     </ItemGroup>
 
     <ItemGroup>
@@ -35,14 +36,14 @@
     <ItemGroup>
         <None Remove="Resources\background.png" />
         <None Remove="Resources\ffmpeg.exe" />
-        <None Remove="Resources\background.exe" />
+        <None Remove="Resources\radadec.exe" />
         <None Remove="Resources\burbankbigcondensed_bold.otf" />
     </ItemGroup>
     
     <ItemGroup>
         <EmbeddedResource Include="Resources\background.png" />
         <EmbeddedResource Include="Resources\ffmpeg.exe" />
-        <EmbeddedResource Include="Resources\binkadec.exe" />
+        <EmbeddedResource Include="Resources\radadec.exe" />
         <EmbeddedResource Include="Resources\burbankbigcondensed_bold.otf" />
     </ItemGroup>
     

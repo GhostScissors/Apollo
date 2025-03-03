@@ -45,7 +45,7 @@ public static class ApplicationService
 
     private static async Task InitializeDependenciesAsync()
     {
-        foreach (var fileName in new[] { "background.png", "ffmpeg.exe", "binkadec.exe", "burbankbigcondensed_bold.otf" })
+        foreach (var fileName in new[] { "background.png", "ffmpeg.exe", "radadec.exe", "burbankbigcondensed_bold.otf" })
         {
             var resourceName =  $"Apollo.Resources.{fileName}";
             var outputPath = Path.Combine(DataDirectory, fileName);
